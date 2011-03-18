@@ -1,0 +1,156 @@
+class PassController < ApplicationController
+  include AuthenticatedSystem
+
+  CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
+
+  before_filter :login_required
+
+
+  # We are going return two types, Routes and Active VehicleJourneys.
+  def route_journeys
+    @routes = Route.all
+    rs = []
+    if params[:routes] != nil
+      rs = params[:routes].split(',')
+    end
+    if params[:route]
+      rs << params[:route]
+    end
+    if !rs.empty?
+      @routes.select {|x| rs.include?(x.id)}
+    end
+
+    @journey_locations = JourneyLocation.find_by_routes(@routes)
+
+    text = ""
+    text << @journey_locations.map {|x| journey_spec(x.vehicle_journey,x.route)}.join("\n")
+    if !text.empty?
+      text << "\n"
+    end
+    text << @routes.map {|x| route_spec(x)}.join("\n")
+
+    respond_to do |format|
+      format.html
+      format.text  { render :text => text }
+    end
+  end
+
+  def route_journey
+    if params[:type] == "V"
+      @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+      ret = journey_definition(@vehicle_journey)
+    elsif params[:type] == "R"
+      @route = Route.find_by_persistentid(params[:id])
+      ret = route_definition(@route)
+    else
+      # contingency, try both.
+      begin
+        @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+        ret = journey_definition(@vehicle_journey)
+      rescue
+        @route = Route.find_by_persistentid(params[:id])
+        ret = route_definition(@route)
+      end
+    end
+    respond_to do |format|
+      format.html
+      format.xml  { render :text => ret }
+    end
+  end
+
+  def curloc
+    @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
+
+    respond_to do |format|
+      format.html { redirect_to(bus_services_url) }
+      format.xml  {
+        if @vehicle_journey.journey_location == nil
+          render :xml => "<NotInService/>"
+        else
+          lon, lat = @vehicle_journey.journey_location.coordinates
+          reported = @vehicle_journey.journey_location.reported_time
+          recorded = @vehicle_journey.journey_location.recorded_time
+          timediff = @vehicle_journey.journey_location.timediff.to_i
+          recorded = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
+          reported = reported.utc.strftime "%Y-%m-%d %H:%M:%S"
+          direction = @vehicle_journey.journey_location.direction
+          on_route = @vehicle_journey.journey_location.on_route?
+          render :xml => "<JP lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' onroute='#{on_route}'/>"
+        end
+      }
+    end
+  end
+
+  private
+
+  def route_spec(route)
+    "#{route.name},#{route.persistentid},R,#{route.version}"
+  end
+
+  def journey_spec(journey, route)
+    "#{journey.display_name},#{journey.persistentid},V,#{route.persistentid},#{route.version}"
+  end
+
+  def route_definition(route)
+    box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
+
+    text = "<Route id='#{route.persistentid}'\n"
+    text += "      name='#{route.display_name}'\n"
+    text += "      routeCode='#{route.code}'\n"
+    text += "      version='#{route.version}'\n"
+    text += "      nw_lon='#{box[0][0]}'\n"
+    text += "      nw_lat='#{box[0][1]}'\n"
+    text += "      se_lon='#{box[1][0]}'\n"
+    text += "      se_lat='#{box[1][1]}'>\n"
+
+    patterns = route.journey_patterns
+    # Make the patterns unique.
+    cs = []
+    for pattern in patterns do
+      coords = pattern.view_path_coordinates["LonLat"]
+      unique = true
+      for c in cs do
+        if coords == c
+          unique = false
+          break
+        end
+      end
+      if unique
+        cs << coords
+      end
+    end
+
+    for coords in cs do
+      text += "<JPs>"
+      text += coords.map{|lon,lat| "<JP lon='#{lon}' lat='#{lat}' time=''/>\n"}.join
+      text += "</JPs>\n"
+    end
+    text += "</Route>\n"
+    return text
+  end
+
+  def journey_definition(vehicle_journey)
+    box = vehicle_journey.journey_pattern.theBox
+
+    coords = vehicle_journey.journey_pattern.view_path_coordinates["LonLat"]
+    text = "<Route curloc='#{CONTROLLER_URL}/pass/curloc/#{vehicle_journey.persistentid}.xml'\n"
+    text += "      id='#{vehicle_journey.persistentid}'\n"
+    text += "      routeCode='#{vehicle_journey.service.route.code}'\n"
+    text += "      version='#{vehicle_journey.service.route.version}'\n"
+    text += "      name='#{vehicle_journey.display_name}'\n"
+    text += "      startTime='#{(Time.parse("0:00")+vehicle_journey.start_time.minutes).strftime("%H:%M")}'\n"
+    text += "      endTime='#{(Time.parse("0:00")+vehicle_journey.end_time.minutes).strftime("%H:%M")}'\n"
+    text += "      locationRefreshRate='10'\n"
+    text += "      nw_lon='#{box[0][0]}'\n"
+    text += "      nw_lat='#{box[0][1]}'\n"
+    text += "      se_lon='#{box[1][0]}'\n"
+    text += "      se_lat='#{box[1][1]}'>\n"
+    text += "<JPs>"
+    text += coords.map{|lon,lat| "<JP lon='#{lon}' lat='#{lat}' time=''/>\n"}.join
+    text += "</JPs>\n"
+    text += "</Route>\n"
+    return text
+  end
+
+
+end
