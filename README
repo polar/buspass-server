@@ -1,0 +1,6 @@
+
+The Buspass Server
+==================
+
+This rails app merely serves up the API and data
+for the Busme Application.
