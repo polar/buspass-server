@@ -28,3 +28,9 @@ set :user, "buspass"
 #role :db,  "buspass@suoc.syr.edu:922", :primary => true
 server "buspass@192.168.99.3", :web, :app, :db, :primary => true
 
+namespace :deploy  do
+  task :start do
+  end
+  task :restart do
+  end
+end
