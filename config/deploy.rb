@@ -28,6 +28,14 @@ set :user, "buspass"
 #role :db,  "buspass@suoc.syr.edu:922", :primary => true
 server "buspass@192.168.99.3", :web, :app, :db, :primary => true
 
+namespace :deploy do
+  task :install_gems do
+    run("cd #{current_path}; rake gems:install")
+  end
+end
+
+before( "deploy:restart", "deploy:install_gems")
+
 namespace :deploy  do
   task :start do
   end
