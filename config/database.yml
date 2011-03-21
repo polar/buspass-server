@@ -1,8 +1,8 @@
 development:
   adapter: mysql
   database: buspass_development
-  username: suoc
-  password: suoc
+  username: buspass
+  password: buspass
   socket: /var/run/mysqld/mysqld.sock
   timeout: 5000
   pool: 50  # number of bus simulations
@@ -19,8 +19,8 @@ test:
 production:
   adapter: mysql
   database: buspass_production
-  username: suoc
-  password: suoc
+  username: buspass
+  password: buspass
   socket: /var/run/mysqld/mysqld.sock
   timeout: 5000
   pool: 50  # number of bus simulations
