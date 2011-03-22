@@ -14,7 +14,7 @@ set :git_enable_submodules, 1
 # Sadly, I think this applies to all out going connections.
 #set :gateway, "polar@adiron.kicks-ass.net:922"
 
-# Remote Server 
+# Remote Server
 # The app has its own user id.
 set :deploy_to, "/srv/buspass-server"
 set :use_sudo, false
@@ -26,7 +26,8 @@ set :user, "buspass"
 #role :app, "buspass@suoc.syr.edu:922"
 #role :web, "buspass@suoc.syr.edu:922"
 #role :db,  "buspass@suoc.syr.edu:922", :primary => true
-server "buspass@192.168.99.3", :web, :app, :db, :primary => true
+# 184.106.109.126 is adiron.com until DNS flushes
+server "buspass@184.106.109.126", :web, :app, :db, :primary => true
 
 namespace :deploy do
   task :install_gems do
