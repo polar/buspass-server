@@ -1,9 +1,9 @@
 class ApisController < ApplicationController
   include AuthenticatedSystem
 
-#  CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
+  CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
 #  CONTROLLER_URL = "http://api.buspass.adiron.com:3000"
-  CONTROLLER_URL = "http://184.106.109.126:3000"
+#  CONTROLLER_URL = "http://184.106.109.126:3000"
 
   before_filter :authorized_or_new_user, :get_api
 
