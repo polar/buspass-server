@@ -30,11 +30,16 @@ set :user, "buspass"
 server "buspass@184.106.109.126", :web, :app, :db, :primary => true
 
 namespace :deploy do
+  task :debianize do
+    # Should be calling rails-app-debianize, but it doesn't do railties.
+    run("cd #{current_path}/vendor; rm -f rails railties; ln -s /usr/share/rails ; ln -s /usr/share/rails/railties")
+  end
   task :install_gems do
     run("cd #{current_path}; rake gems:install")
   end
 end
 
+after("deploy:update", "deploy:debianize")
 before( "deploy:restart", "deploy:install_gems")
 
 namespace :deploy  do
