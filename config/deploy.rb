@@ -27,7 +27,7 @@ set :user, "buspass"
 #role :web, "buspass@suoc.syr.edu:922"
 #role :db,  "buspass@suoc.syr.edu:922", :primary => true
 # 184.106.109.126 is adiron.com until DNS flushes
-server "buspass@184.106.109.126", :web, :app, :db, :primary => true
+server "buspass@buspass.adiron.com", :web, :app, :db, :primary => true
 
 namespace :deploy do
   task :debianize do
@@ -39,8 +39,6 @@ namespace :deploy do
   end
 end
 
-after("deploy:update", "deploy:debianize")
-before( "deploy:restart", "deploy:install_gems")
 
 namespace :deploy  do
   task :start do
