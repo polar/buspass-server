@@ -32,7 +32,7 @@ class ApisController < ApplicationController
       @api.definition = text
    end
    respond_to do |format|
-     format.html { render :render :nothing, :status => 403 } #forbidden
+     format.html { render :nothing, :status => 403 } #forbidden
      format.xml  { render :xml => @api.definition }
    end
   end
