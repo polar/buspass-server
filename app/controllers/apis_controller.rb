@@ -10,27 +10,31 @@ class ApisController < ApplicationController
   # This is the login.
   def get_api
     track_user
-    #
-    # @api = Api.find_by_major_version
-    # So far, we just ignore, and give them this one.
-    #
-    @api = Api.new
-    @api.major_version = 1
-    @api.minor_version = 1
+    # For now we only have one.
+    @api = Api.first
+    if @api == nil
+      #
+      # @api = Api.find_by_major_version
+      # So far, we just ignore, and give them this one.
+      #
+      @api = Api.new
+      @api.major_version = 1
+      @api.minor_version = 1
 
-    text = "<API\n"
-    text += "majorVersion= '#{@api.major_version}'\n"
-    text += "minorVersion= '#{@api.minor_version}'\n"
-    text += "user= '#{current_user.id}'\n"
-    text += "getRouteJourneyIds = '#{CONTROLLER_URL}/pass/route_journeys.text'\n"
-    text += "getRouteDefinition = '#{CONTROLLER_URL}/pass/route_journey/'\n"
-    text += "getJourneyLocation = '#{CONTROLLER_URL}/pass/curloc/'\n"
-    text += "/>"
-    puts text
-    respond_to do |format|
-      format.html { redirect_to(apis_url) }
-      format.xml  { render :xml => text }
-    end
+      text = "<API\n"
+      text += "majorVersion= '#{@api.major_version}'\n"
+      text += "minorVersion= '#{@api.minor_version}'\n"
+      text += "user= '#{current_user.id}'\n"
+      text += "getRouteJourneyIds = '#{CONTROLLER_URL}/pass/route_journeys.text'\n"
+      text += "getRouteDefinition = '#{CONTROLLER_URL}/pass/route_journey/'\n"
+      text += "getJourneyLocation = '#{CONTROLLER_URL}/pass/curloc/'\n"
+      text += "/>"
+      @api.definition = text
+   end
+   respond_to do |format|
+     format.html { render :render :nothing, :status => 403 } #forbidden
+     format.xml  { render :xml => @api.definition }
+   end
   end
 
   private
