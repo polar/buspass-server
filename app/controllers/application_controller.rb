@@ -20,10 +20,10 @@ class ApplicationController < ActionController::Base
     if (params[:t])
       @entry.call_time = Time.parse(params[:t])
     end
-    @entry.recv_time = Time.now
-    @entry.session = request.session_options[:id]
-    @entry.controller = self.controller+name
-    @entry.action = self.action_name
+    @entry.recv_time  = Time.now
+    @entry.sessionid  = request.session_options[:id]
+    @entry.controller = self.controller_name
+    @entry.action     = self.action_name
   end
 
   def end_stats
