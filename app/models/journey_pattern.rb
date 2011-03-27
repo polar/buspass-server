@@ -110,6 +110,54 @@ class JourneyPattern < ActiveRecord::Base
     journey_pattern_timing_links.reduce(0) {|v,tl| v + tl.time}
   end
 
+  # T is in miliseconds from 0
+  def get_jtpl_for_time(time)
+    tls = journey_pattern_timing_links
+    begin_time = 0.minutes
+    for tl in tls do
+      end_time = begin_time + tl.time.minutes
+      if begin_time <= t && t <= end_time
+        return tl
+      end
+      begin_time = end_time
+    end
+    raise "Time is past duration"
+  end
+
+  # T is in miliseconds from 0
+  def distance_on_path(t)
+    tls = journey_pattern_timing_links
+    begin_time = 0.minutes
+    for tl in tls do
+      end_time = begin_time + tl.time.minutes
+      if begin_time <= t && t <= end_time
+        return distance + tl.distance_on_path(t-begin_time)
+      end
+      begin_time = end_time
+    end
+    raise "Time is past duration"
+  end
+
+  # d is in feet, returns miliseconds from 0.
+  def time_on_path(d)
+    tls = journey_pattern_timing_links
+    begin_dist = 0
+    time = 0
+    for tl in tls do
+      end_dist = begin_dist + tl.path_distance
+      if begin_dist <= d && d <= end_dist
+        return time + tl.time_on_path(d-begin_dist)
+      end
+      time += tl.time.minutes
+      begin_dist = end_dist
+    end
+    raise "Distance is past total distance"
+  end
+
+  def starting_direction
+    journey_pattern_timing_links.first.starting_direction
+  end
+
   def self.find_by_coord(coord)
     # TODO: Faster using a Database query.
     self.all.select {|a| a.locatedBy(coord)}

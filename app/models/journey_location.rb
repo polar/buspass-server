@@ -2,6 +2,7 @@ class JourneyLocation < ActiveRecord::Base
 
   # Coordinates are { :lat => float, :lon => float }
   serialize :coordinates
+  serialize :last_coordinates
 
   belongs_to :vehicle_journey
   belongs_to :service
@@ -19,14 +20,7 @@ class JourneyLocation < ActiveRecord::Base
   # negative means late
   # positive means early.
   def timediff
-    vehicle_journey.time_difference(coordinates,reported_time)
-  end
-
-  #
-  # This method returns the direction the bus is traveling in radians.
-  #
-  def direction
-    vehicle_journey.direction(coordinates, 60); # 60 feet
+    vehicle_journey.time_difference(distance,reported_time)
   end
 
   def on_route?

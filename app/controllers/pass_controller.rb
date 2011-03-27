@@ -64,13 +64,16 @@ class PassController < ApplicationController
   def curloc
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
-    lon, lat  = @vehicle_journey.journey_location.coordinates
     reported  = @vehicle_journey.journey_location.reported_time
-    recorded  = @vehicle_journey.journey_location.recorded_time
-    timediff  = @vehicle_journey.journey_location.timediff.to_i
-    recorded  = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
     reported  = reported.utc.strftime "%Y-%m-%d %H:%M:%S"
+
+    recorded  = @vehicle_journey.journey_location.recorded_time
+    recorded  = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
+
+    lon, lat  = @vehicle_journey.journey_location.coordinates
+    timediff  = @vehicle_journey.journey_location.timediff.to_i
     direction = @vehicle_journey.journey_location.direction
+    distance  = @vehicle_journey.journey_location.distance
     on_route  = @vehicle_journey.journey_location.on_route?
 
     respond_to do |format|
@@ -80,14 +83,14 @@ class PassController < ApplicationController
           render :text => "#{params[:id]},!\n"
         else
           render :text =>
-            "#{params[:id]},#{lon},#{lat},#{reported},#{recorded},#{timediff},#{direction},#{onroute}\n"
+            "#{params[:id]},#{lon},#{lat},#{reported},#{recorded},#{timediff},#{direction},#{distance},#{onroute}\n"
         end
       }
       format.xml  {
         if @vehicle_journey.journey_location == nil
           render :xml => "<NotInService id='#{params[:id]}'/>"
         else
-          render :xml => "<JP id='#{params[:id]}' lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' onroute='#{on_route}'/>"
+          render :xml => "<JP id='#{params[:id]}' lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' distance='#{distance}' onroute='#{on_route}'/>"
         end
       }
     end

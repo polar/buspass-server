@@ -60,30 +60,55 @@ class VehicleJourney < ActiveRecord::Base
   # Returns the direction in radians from north that a bus on a particular
   # link will be going at a particular location near that link
   #
-  def direction(coord, buffer)
+  def direction(coord, buffer, time)
     tls = journey_pattern.journey_pattern_timing_links
+    begin_time = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
     for tl in tls do
-      if tl.isBoundedBy(coord)
-	begin
-	  return tl.direction(coord, buffer)
-	rescue
-	  # Not on Link, but it could be on another link that is bounded in.
-	end
+      end_time = begin_time + tl.time.minutes
+      if (begin_time - 10.minutes <= time && time <= end_time + 10.minutes)
+        if tl.isBoundedBy(coord)
+          begin
+            return tl.direction(coord, buffer)
+          rescue
+            # Not on Link, but it could be on another link that is bounded in.
+          end
+        end
       end
+      begin_time = end_time
     end
     raise Not on Pattern
   end
 
+  # Returns the time difference in seconds
+  # Negative is early.
+  def time_difference(distance, time)
+    etd = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
+    eta = etd + journey_pattern.time_on_path(distance)
+    if eta = 1.minute <= time
+      if time <= eta + 1.minute
+        # We are for the most part, on time
+        return 0;
+      else
+  puts "LATE!!!!  #{time} ETA #{eta}  #{time-eta} #{(time-eta)/60} #{((time.to_time - etd.to_time)/60).to_i}"
+        # we are late (positive) in minutes
+        return ((time.to_time - eta.to_time)/60).to_i
+      end
+    else
+  puts "EARLY!!!  #{time} ETA #{eta}  #{time-eta} #{(time-eta)/60} #{((time.to_time - eta.to_time)/60).to_i}"
+      # We are early (negative)
+      return ((time.to_time - eta.to_time)/60).to_i
+    end
+  end
+
   # Returns the time_difference in minutes.
-  def time_difference(coord,time)
+  def time_difference_DONTUSE(coord,time)
     # TODO: This algorithm has problems with circular routes
     # or close to them.
     # if the departure time is negative and we are still before midnight
     # then we have to go from yesterday. What's the threshold?
     etd = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
     tls = journey_pattern.journey_pattern_timing_links
-    tl = tls.first
-    while !tls.empty?
+    for tl in tls do
        eta = etd + tl.time.minutes
        puts "ETD #{etd}  #{time} ETA #{eta}"
        if tl.isBoundedBy(coord)
@@ -95,7 +120,6 @@ class VehicleJourney < ActiveRecord::Base
             else
        puts "LATE!!!!  ETD #{etd}  #{time} etd<=time: #{etd<=time} ETA #{eta}  eta<=time: #{eta<=time} #{time-eta} #{(time-eta)/60} #{((time.to_time - etd.to_time)/60).to_i}"
               # we are late (positive) in minutes
-              # Difference is in days.
               return ((time.to_time - etd.to_time)/60).to_i
             end
           else
@@ -189,25 +213,42 @@ class VehicleJourney < ActiveRecord::Base
         return
       end
       # Invariant: journey_time < time_past < journey_time + current_link.time.minutes
-      # We now have the contained timing link, time must be in minutes
-      coordinates = current_link.point_on_path((time_past-journey_time)/1.minute)
+      # We now have the contained timing link, time is in miliseconds
+      coordinates = current_link.point_on_path(time_past-journey_time)
       if journey_location == nil
         create_journey_location(:service => service, :route => service.route)
         details = "--journey start--"
+        direction = journey_pattern.starting_direction
+        distance = 0
       else
         time_previous = journey_location.reported_time
         coord_previous = journey_location.coordinates
-        distance = getGeoDistance(coord_previous,coordinates)
-        direction = getGeoAngle(coord_previous, coordinates)
+        #distance = getGeoDistance(coord_previous,coordinates)
+        distance = current_link.distance_on_path(time_past-journey_time) # feet
+        #direction = getGeoAngle(coord_previous, coordinates)
+        direction = current_link.direction_on_path(time_past-journey_time) # radians from North
         time = time_start + time_past - journey_location.reported_time
         speed = distance/time
         details = "dist = #{distance} dir = #{direction} speed = #{speed} time = #{time}"
       end
+      total_distance = journey_location.distance + distance
+      reported_time  = time_start + time_past
+      timediff = time_difference(total_distance, reported_time)
+
+      journey_location.last_coordinates   = journey_location.coordinates
+      journey_location.last_reported_time = journey_location.reported_time
+      journey_location.last_distance      = journey_location.distance
+      journey_location.last_direction     = journey_location.direction
+      journey_location.last_timediff      = journey_location.timediff
+
       journey_location.coordinates = coordinates
-      journey_location.reported_time = time_start + time_past
+      journey_location.direction = direction
+      journey_location.distance += total_distance
+      journey_location.timediff = timediff
+      journey_location.reported_time = reported_time
       journey_location.recorded_time = DateTime.now
 
-      puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at #{time_start+time_past} in Link #{linki} details = #{details}"
+      puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at #{reported_time} with timediff #{timediff} direction #{direction} distance #{total_distance} in Link #{linki} details = #{details}"
       journey_location.save!
       #puts "Sleeping for #{time_interval}"
       sleep time_interval

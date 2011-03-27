@@ -79,19 +79,48 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     getPathDistance(view_path_coordinates["LonLat"])
   end
 
+  # Feet/Milisecond
   def average_speed
     path_distance/time.minutes
+  end
+
+  # t is time in miliseconds from 0
+  def distance_on_path(t)
+    # for now, just average
+    average_speed * t
+  end
+
+  # t is time in miliseconds from 0
+  def direction_on_path(t)
+    dir = getDirectionOnPath(view_path_coordinates["LonLat"], average_speed, t)
+    if !isOnRoute(coord, 60)
+      raise "Not on Route"
+    end
+    dir
+  end
+
+  # d is in feet
+  def time_on_path(d)
+    getTimeOnPath(view_path_coordinates["LonLat"], average_speed, d)
   end
 
   # This function returns the estimated LonLat for the location on the
   # path for the time from the start of the link, based upon the average
   # speed.
-  def point_on_path(time)
-    coord = getPointOnPath(view_path_coordinates["LonLat"], average_speed, time.minutes)
+  # t is time in miliseconds from 0
+  def point_on_path(t)
+    coord = getPointOnPath(view_path_coordinates["LonLat"], average_speed, t)
     if !isOnRoute(coord, 60)
       raise "Not on Route"
     end
     coord
+  end
+
+  def starting_direction
+    vps = view_path_coordinates["LonLat"]
+    from_coord = vps[0]
+    to_coord = vps[1] # Hopefully there are two!
+    return getGeoAngle(from_coord, to_coord)
   end
 
   # Prerequisite is that this coordinate is on the line.
@@ -101,7 +130,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     while !vps.empty? do
       vp2 = vps.shift
       if onLine(vp1, vp2, buffer, coord)
-	return getAngle(vp1,vp2)
+	return getGeoAngle(vp1,vp2)
       end
       vp1 = vp2
     end
