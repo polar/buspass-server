@@ -5,11 +5,11 @@ class ApisController < ApplicationController
 #  CONTROLLER_URL = "http://api.buspass.adiron.com:3000"
 #  CONTROLLER_URL = "http://184.106.109.126:3000"
 
-  before_filter :authorized_or_new_user, :get_api
-  before_filter :track_user, :get_api
-  before_filter :start_stats, :get_api
+  before_filter :authorized_or_new_user
+  before_filter :track_user
+  before_filter :start_stats
 
-  after_filter :end_stats, :get_api
+  after_filter :end_stats
 
   # This is the login.
   def get_api
