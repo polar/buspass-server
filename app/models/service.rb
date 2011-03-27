@@ -99,7 +99,7 @@ class Service < ActiveRecord::Base
   # so that we can have a persistent name in CSV files.
   def get_journey_pattern(time, index)
     # We nake the name unique with the start time
-    name = "Route #{route.code} #{direction.name} #{day_class} S #{self.name.hash.abs}-#{index} #{time.strftime("%H:%M")}"
+    name = "Route #{route.code} #{direction.name} #{day_class} S #{self.name}-#{index} #{time.strftime("%H:%M")}"
     jp = JourneyPattern.find_or_initialize_by_name(
 	               :name => name,
 	               :route => route,

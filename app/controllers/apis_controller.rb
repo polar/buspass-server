@@ -6,10 +6,13 @@ class ApisController < ApplicationController
 #  CONTROLLER_URL = "http://184.106.109.126:3000"
 
   before_filter :authorized_or_new_user, :get_api
+  before_filter :track_user, :get_api
+  before_filter :start_stats, :get_api
+
+  after_filter :end_stats, :get_api
 
   # This is the login.
   def get_api
-    track_user
     # For now we only have one.
     @api = Api.first
     if @api == nil
@@ -24,7 +27,6 @@ class ApisController < ApplicationController
       text = "<API\n"
       text += "majorVersion= '#{@api.major_version}'\n"
       text += "minorVersion= '#{@api.minor_version}'\n"
-      text += "user= '#{current_user.id}'\n"
       text += "getRouteJourneyIds = '#{CONTROLLER_URL}/pass/route_journeys.text'\n"
       text += "getRouteDefinition = '#{CONTROLLER_URL}/pass/route_journey/'\n"
       text += "getJourneyLocation = '#{CONTROLLER_URL}/pass/curloc/'\n"
@@ -50,6 +52,7 @@ class ApisController < ApplicationController
     end
   end
 
+  # before_filter :track_user, :get_api
   def track_user
     ut = UserTracking.new
     ut.user = @current_user
@@ -59,6 +62,7 @@ class ApisController < ApplicationController
       ut.longitude = lon
       ut.latitude  = lat
     end
+    ut.sessionid  = request.session_options[:id]
     ut.login_date = Time.now
     ut.save!
   end

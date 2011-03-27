@@ -4,6 +4,9 @@ class PassController < ApplicationController
   CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
 
   before_filter :login_required
+  before_filter :start_stats
+
+  after_filter :end_stats
 
 
   # We are going return two types, Routes and Active VehicleJourneys.
@@ -30,8 +33,8 @@ class PassController < ApplicationController
     text << @routes.map {|x| route_spec(x)}.join("\n")
 
     respond_to do |format|
-      format.html
-      format.text  { render :text => text }
+      format.html { render :nothing, :status => 403 } #forbidden
+      format.text { render :text => text }
     end
   end
 
@@ -53,7 +56,7 @@ class PassController < ApplicationController
       end
     end
     respond_to do |format|
-      format.html
+      format.html { render :nothing, :status => 403 } #forbidden
       format.xml  { render :text => ret }
     end
   end
@@ -61,21 +64,30 @@ class PassController < ApplicationController
   def curloc
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
+    lon, lat  = @vehicle_journey.journey_location.coordinates
+    reported  = @vehicle_journey.journey_location.reported_time
+    recorded  = @vehicle_journey.journey_location.recorded_time
+    timediff  = @vehicle_journey.journey_location.timediff.to_i
+    recorded  = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
+    reported  = reported.utc.strftime "%Y-%m-%d %H:%M:%S"
+    direction = @vehicle_journey.journey_location.direction
+    on_route  = @vehicle_journey.journey_location.on_route?
+
     respond_to do |format|
-      format.html { redirect_to(bus_services_url) }
+      format.html { render :nothing, :status => 403 } #forbidden
+      format.text {
+        if @vehicle_journey.journey_location == nil
+          render :text => "#{params[:id]},!\n"
+        else
+          render :text =>
+            "#{params[:id]},#{lon},#{lat},#{reported},#{recorded},#{timediff},#{direction},#{onroute}\n"
+        end
+      }
       format.xml  {
         if @vehicle_journey.journey_location == nil
-          render :xml => "<NotInService/>"
+          render :xml => "<NotInService id='#{params[:id]}'/>"
         else
-          lon, lat = @vehicle_journey.journey_location.coordinates
-          reported = @vehicle_journey.journey_location.reported_time
-          recorded = @vehicle_journey.journey_location.recorded_time
-          timediff = @vehicle_journey.journey_location.timediff.to_i
-          recorded = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
-          reported = reported.utc.strftime "%Y-%m-%d %H:%M:%S"
-          direction = @vehicle_journey.journey_location.direction
-          on_route = @vehicle_journey.journey_location.on_route?
-          render :xml => "<JP lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' onroute='#{on_route}'/>"
+          render :xml => "<JP id='#{params[:id]}' lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' onroute='#{on_route}'/>"
         end
       }
     end
