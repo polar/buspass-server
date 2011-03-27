@@ -31,10 +31,6 @@ server "buspass@adiron.com", :web, :app, :db, :primary => true
 #server "buspass@192.168.99.3", :web, :app, :db, :primary => true
 
 namespace :deploy do
-  task :debianize do
-    # Should be calling rails-app-debianize, but it doesn't do railties.
-    run("cd #{current_path}/vendor; rm -f rails railties; ln -s /usr/share/rails ; ln -s /usr/share/rails/railties")
-  end
   task :install_gems do
     run("cd #{current_path}; rake gems:install")
   end
@@ -43,7 +39,15 @@ end
 
 namespace :deploy  do
   task :start do
+    run "/etc/init.d/buspass-server-unicorn start"
+    run "/etc/init.d/buspass-server-nginx start"
+  end
+  task :stop do
+    run "/etc/init.d/buspass-server-unicorn stop"
+    run "/etc/init.d/buspass-server-nginx stop"
   end
   task :restart do
+    run "/etc/init.d/buspass-server-unicorn restart"
+    run "/etc/init.d/buspass-server-nginx restart"
   end
 end
