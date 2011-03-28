@@ -37,7 +37,7 @@ class VehicleJourney < ActiveRecord::Base
   end
 
   def is_scheduled?(time)
-    time_start = Time.parse("0:00")+departure_time.minutes
+    time_start = base_time+departure_time.minutes
     time_end = time_start + duration.minutes
     return time_start <= time && time <= time_end
   end
@@ -52,7 +52,7 @@ class VehicleJourney < ActiveRecord::Base
   #
   def direction(coord, buffer, time)
     tls = journey_pattern.journey_pattern_timing_links
-    begin_time = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
+    begin_time = base_time + departure_time.minutes
     for tl in tls do
       end_time = begin_time + tl.time.minutes
       if (begin_time - 10.minutes <= time && time <= end_time + 10.minutes)
@@ -72,58 +72,22 @@ class VehicleJourney < ActiveRecord::Base
   # Returns the time difference in minutes
   # Negative is early.
   def time_difference(distance, time)
-    etd = Time.parse("0:00") + departure_time.minutes
+    etd = base_time + departure_time.minutes
     eta = etd + journey_pattern.time_on_path(distance)
     if eta - 1.minute <= time
       if time <= eta + 1.minute
         # We are for the most part, on time
         return 0;
       else
-  puts "LATE!!!!  #{time} ETA #{eta}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
+  puts "LATE!!!!  #{tz(time)} ETA #{tz(eta)}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
         # we are late (positive) in minutes
         return ((time - eta)/1.minute).to_i
       end
     else
-  puts "EARLY!!!  #{time} ETA #{eta}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
+  puts "EARLY!!!  #{tz(time)} ETA #{tz(eta)}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
       # We are early (negative)
       return ((time - eta)/1.minute).to_i
     end
-  end
-
-  # Returns the time_difference in minutes.
-  def time_difference_DONTUSE(coord,time)
-    # TODO: This algorithm has problems with circular routes
-    # or close to them.
-    # if the departure time is negative and we are still before midnight
-    # then we have to go from yesterday. What's the threshold?
-    etd = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
-    tls = journey_pattern.journey_pattern_timing_links
-    for tl in tls do
-       eta = etd + tl.time.minutes
-       puts "ETD #{etd}  #{time} ETA #{eta}"
-       if tl.isBoundedBy(coord)
-        if tl.isOnRoute(coord, 60)  # TODO: Buffer is in feet, need to change to meters
-          if etd <= time
-            if time <= eta
-              # We are for the most part, on time
-              return 0;
-            else
-       puts "LATE!!!!  ETD #{etd}  #{time} etd<=time: #{etd<=time} ETA #{eta}  eta<=time: #{eta<=time} #{time-eta} #{(time-eta)/60} #{((time.to_time - etd.to_time)/60).to_i}"
-              # we are late (positive) in minutes
-              return ((time.to_time - etd.to_time)/60).to_i
-            end
-          else
-       puts "EARLY!!!  ETD #{etd}  #{time} etd<=time: #{etd<=time} ETA #{eta}  #{time-eta} #{(time-eta)/60} #{((time.to_time - eta.to_time)/60).to_i}"
-            # We are early (negative)
-            return ((time.to_time - eta.to_time)/60).to_i
-          end
-        end
-       end
-       tls = tls.drop(1)
-       tl = tls.first
-       etd = eta
-    end
-    return 0
   end
 
   ##
@@ -162,45 +126,61 @@ class VehicleJourney < ActiveRecord::Base
     @please_stop_simulating = true
   end
 
+  TIME_ZONE = "America/New_York"
+  TZ = Time.now.in_time_zone(TIME_ZONE).zone
+
+  def time_zone
+    return TZ
+  end
+
+  def base_time
+    Time.parse("0:00 #{time_zone}")
+  end
+
+  def tz(time)
+    time.in_time_zone(TIME_ZONE)
+  end
+
   def simulate(time_interval, sim_time = false)
     # Duration is stored in minutes, need to covert
     dur = duration.minutes
 
     if ! sim_time
-      time_start = Time.parse("0:00") + departure_time.minutes
+      time_start = base_time + departure_time.minutes
     else
       time_start = Time.now
     end
-    puts "Starting Simulation of #{self.name} at #{Time.now} for duration of #{duration} minutes"
+    puts "Starting Simulation of #{self.name} at #{tz(Time.now)} for duration of #{duration} minutes"
 
     time_past = Time.now - time_start
     while time_past < dur do
-      coordinates = journey_pattern.point_on_path(time_past)
-      if journey_location == nil
-        create_journey_location(:service => service, :route => service.route)
+      if (time_past >=0)
+        coordinates = journey_pattern.point_on_path(time_past)
+        if journey_location == nil
+          create_journey_location(:service => service, :route => service.route)
+        end
+        total_distance = journey_pattern.distance_on_path(time_past) # feet
+        direction      = journey_pattern.direction_on_path(time_past) # radians from North
+        reported_time  = time_start + time_past
+        timediff       = time_difference(total_distance, reported_time)
+
+        journey_location.last_coordinates   = journey_location.coordinates
+        journey_location.last_reported_time = journey_location.reported_time
+        journey_location.last_distance      = journey_location.distance
+        journey_location.last_direction     = journey_location.direction
+        journey_location.last_timediff      = journey_location.timediff
+
+        journey_location.coordinates   = coordinates
+        journey_location.direction     = direction
+        journey_location.distance      = total_distance
+        journey_location.timediff      = timediff
+        journey_location.reported_time = reported_time
+        journey_location.recorded_time = Time.now
+
+        journey_location.save!
+
+        puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at direction #{direction} distance #{total_distance} at #{tz(reported_time)} timediff #{timediff} time #{time_past}"
       end
-      total_distance = journey_pattern.distance_on_path(time_past) # feet
-      direction      = journey_pattern.direction_on_path(time_past) # radians from North
-      reported_time  = time_start + time_past
-      timediff       = time_difference(total_distance, reported_time)
-
-      journey_location.last_coordinates   = journey_location.coordinates
-      journey_location.last_reported_time = journey_location.reported_time
-      journey_location.last_distance      = journey_location.distance
-      journey_location.last_direction     = journey_location.direction
-      journey_location.last_timediff      = journey_location.timediff
-
-      journey_location.coordinates   = coordinates
-      journey_location.direction     = direction
-      journey_location.distance      = total_distance
-      journey_location.timediff      = timediff
-      journey_location.reported_time = reported_time
-      journey_location.recorded_time = Time.now
-
-      journey_location.save!
-
-      puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at direction #{direction} distance #{total_distance} timediff #{timediff} time #{time_past}"
-
       if sim_time
         time_past += time_interval.seconds
       else
@@ -251,7 +231,7 @@ class VehicleJourney < ActiveRecord::Base
 	rescue Error => boom
 	  puts "Stopping Journey #{journey.id} #{journey.name} on #{boom}"
 	ensure
-	  puts "Removing Journey #{journey.id} #{journey.name} #{(Time.parse("0:00")+journey.start_time.minutes).strftime("%H:%M")}-#{(Time.parse("0:00")+journey.end_time.minutes).strftime("%H:%M")} at #{(Time.now).strftime("%H:%M")}"
+	  puts "Removing Journey #{journey.id} #{journey.name} #{(base_time+journey.start_time.minutes).strftime("%H:%M")}-#{(base_time+journey.end_time.minutes).strftime("%H:%M")} at #{(Time.now).strftime("%H:%M")}"
 	  runners.delete(journey.id)
 	end
       end

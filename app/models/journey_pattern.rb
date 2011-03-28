@@ -157,7 +157,7 @@ class JourneyPattern < ActiveRecord::Base
     raise "Time is past duration"
   end
 
-  # T is in miliseconds from 0
+  # T is in seconds from 0
   def distance_on_path(t)
     tls = journey_pattern_timing_links
     begin_time = 0.minutes
@@ -167,12 +167,13 @@ class JourneyPattern < ActiveRecord::Base
       if begin_time <= t && t <= end_time
         return distance + tl.distance_on_path(t-begin_time)
       end
+      distance += tl.path_distance
       begin_time = end_time
     end
     raise "Time is past duration"
   end
 
-  # d is in feet, returns miliseconds from 0.
+  # d is in feet, returns seconds from 0.
   def time_on_path(d)
     tls = journey_pattern_timing_links
     begin_dist = 0

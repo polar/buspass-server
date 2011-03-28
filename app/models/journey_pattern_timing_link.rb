@@ -79,12 +79,12 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     getPathDistance(view_path_coordinates["LonLat"])
   end
 
-  # Feet/Milisecond
+  # Feet/second
   def average_speed
     path_distance.to_f/time.minutes
   end
 
-  # t is time in miliseconds from 0
+  # t is time in seconds from 0
   def distance_on_path(t)
     # for now, just average
     average_speed * t
