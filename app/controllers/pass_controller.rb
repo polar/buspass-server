@@ -229,8 +229,8 @@ class PassController < ApplicationController
     text += "#{(box[1][0]*1e6).to_i},"
     text += "#{(box[1][1]*1e6).to_i},"
     text += "10,"
-    text += "#{(vehicle_journey.start_time}," # minutes
-    text += "#{(vehicle_journey.duration}"    # mintues
+    text += "#{vehicle_journey.start_time}," # minutes
+    text += "#{vehicle_journey.duration}"    # mintues
     text += "\n"
     text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
     return text
@@ -245,8 +245,8 @@ class PassController < ApplicationController
     text += "      routeCode='#{vehicle_journey.service.route.code}'\n"
     text += "      version='#{vehicle_journey.service.route.version}'\n"
     text += "      name='#{vehicle_journey.display_name}'\n"
-    text += "      startOffset='#{(vehicle_journey.start_time}'\n"
-    text += "      duration='#{(vehicle_journey.duration}'\n"
+    text += "      startOffset='#{vehicle_journey.start_time}'\n"
+    text += "      duration='#{vehicle_journey.duration}'\n"
     text += "      locationRefreshRate='10'\n"
     text += "      nw_lon='#{box[0][0]}'\n"
     text += "      nw_lat='#{box[0][1]}'\n"
