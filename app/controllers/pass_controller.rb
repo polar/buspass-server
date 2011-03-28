@@ -58,6 +58,12 @@ class PassController < ApplicationController
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
       format.xml  { render :text => ret }
+      format.text { render :text => {
+          if @vehicle_journey != nil
+             journey_definition_text(@vehicle_journey)
+          else
+             route_definiton_text(@route)
+          end}}
     end
   end
 
@@ -142,6 +148,58 @@ class PassController < ApplicationController
       text += "</JPs>\n"
     end
     text += "</Route>\n"
+    return text
+  end
+
+  def route_definiton_text(route)
+    box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
+    text = "R,"
+    text += "#{route.persistentid},"
+    text += "#{route.version},"
+    text += "#{route.display_name},"
+    text += "#{box[0][0]},"
+    text += "#{box[0][1]},"
+    text += "#{box[1][0]},"
+    text += "#{box[1][1]},"
+    text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
+
+    patterns = route.journey_patterns
+    # Make the patterns unique.
+    cs = []
+    for pattern in patterns do
+      coords = pattern.view_path_coordinates["LonLat"]
+      unique = true
+      for c in cs do
+        if coords == c
+          unique = false
+          break
+        end
+      end
+      if unique
+        cs << coords
+      end
+    end
+    text += "|"
+    for coords in cs do
+      text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
+    end
+    return text
+  end
+
+  def journey_definition_text(vehicle_journey)
+    box = vehicle_journey.journey_pattern.theBox
+    text = "J,"
+    text += "#{vehicle_journey.persistentid},"
+    text += "#{vehicle_journey.service.route.version},"
+    text += "#{vehicle_journey.display_name},"
+    text += "#{(Time.parse("0:00")+vehicle_journey.start_time.minutes).to_i},"
+    text += "#{(Time.parse("0:00")+vehicle_journey.end_time.minutes).to_i},"
+    text += "10,"
+    text += "#{box[0][0]},"
+    text += "#{box[0][1]},"
+    text += "#{box[1][0]},"
+    text += "#{box[1][1]},"
+    text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
     return text
   end
 
