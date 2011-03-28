@@ -99,7 +99,7 @@ class PassController < ApplicationController
   def getDefinitionText(route_journey)
     if (route_journey.is_a? Route)
       getRouteDefinitionText(route_journey)
-    elsif (route_journey.is_a VehicleJourney)
+    elsif (route_journey.is_a? VehicleJourney)
       getJourneyDefinitionText(route_journey)
     else
       nil
