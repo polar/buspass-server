@@ -26,11 +26,11 @@ class PassController < ApplicationController
     @journey_locations = JourneyLocation.find_by_routes(@routes)
 
     text = ""
-    text << @journey_locations.map {|x| journey_spec(x.vehicle_journey,x.route)}.join("\n")
+    text << @journey_locations.map {|x| getJourneySpecText(x.vehicle_journey,x.route)}.join("\n")
     if !text.empty?
       text << "\n"
     end
-    text << @routes.map {|x| route_spec(x)}.join("\n")
+    text << @routes.map {|x| getRouteSpecText(x)}.join("\n")
 
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
@@ -39,43 +39,26 @@ class PassController < ApplicationController
   end
 
   def route_journey
-    if params[:type] == "V"
-      @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id], :include => "service")
-      ret = journey_definition(@vehicle_journey)
-    elsif params[:type] == "R"
-      @route = Route.find_by_persistentid(params[:id])
-      ret = route_definition(@route)
-    else
-      # contingency, try both.
-      begin
-        @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id], :include => "service")
-        ret = journey_definition(@vehicle_journey)
-      rescue
-        @route = Route.find_by_persistentid(params[:id])
-        ret = route_definition(@route)
-      end
-    end
+    @object   = params[:type] == "V" &&
+                 VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+    @object ||= params[:type] == "R" &&
+                 Route.find_by_persistentid(params[:id])
+    # We are only really lax here if we are typing things in.
+    @object ||= VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+    @object ||= Route.find_by_persistentid(params[:id])
+
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
-      format.xml  { render :text => ret }
-      format.text { render :text =>
-          if @vehicle_journey != nil
-             journey_definition_text(@vehicle_journey)
-          else
-             route_definiton_text(@route)
-          end
-     }
+      format.xml  { render :text => @definition = getDefinitionXML(@object) }
+      format.text { render :text => @definition = getDefinitionText(@object) }
     end
   end
 
   def curloc
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
-    reported  = @vehicle_journey.journey_location.reported_time
-    reported  = reported.utc.strftime "%Y-%m-%d %H:%M:%S"
-
-    recorded  = @vehicle_journey.journey_location.recorded_time
-    recorded  = recorded.utc.strftime "%Y-%m-%d %H:%M:%S"
+    reported  = @vehicle_journey.journey_location.reported_time.to_i
+    recorded  = @vehicle_journey.journey_location.recorded_time.to_i
 
     lon, lat  = @vehicle_journey.journey_location.coordinates
     timediff  = @vehicle_journey.journey_location.timediff.to_i
@@ -90,7 +73,7 @@ class PassController < ApplicationController
           render :text => "#{params[:id]},!\n"
         else
           render :text =>
-            "#{params[:id]},#{lon},#{lat},#{reported},#{recorded},#{timediff},#{direction},#{distance},#{onroute}\n"
+            "#{params[:id]},#{(lon*1e6).to_i},#{(lat*1e6).to_i},#{reported},#{recorded},#{timediff},#{direction},#{distance},#{onroute}\n"
         end
       }
       format.xml  {
@@ -105,26 +88,63 @@ class PassController < ApplicationController
 
   private
 
-  def route_spec(route)
-    "#{route.name},#{route.persistentid},R,#{route.version}"
+  def getDefinitionText(route_journey)
+    if (route_journey.is_a? Route)
+      getRouteDefinitionText(route_journey)
+    elsif (route_journey.is_a VehicleJourney)
+      getJourneyDefinitionText(route_journey)
+    else
+      nil
+    end
   end
 
-  def journey_spec(journey, route)
-    "#{journey.display_name},#{journey.persistentid},V,#{route.persistentid},#{route.version}"
+  def getDefinitionXML(route_journey)
+    if (route_journey.is_a? Route)
+      getRouteDefinitionXML(route_journey)
+    elsif (route_journey.is_a VehicleJourney)
+      getJourneyDefinitionXML(route_journey)
+    else
+      nil
+    end
   end
 
-  def route_definition(route)
+  def getRouteSpecText(route)
+    "#{route.name.tr(",","_")},#{route.persistentid},R,#{route.version}"
+  end
+
+  def getRouteSpecXML(route)
+    text  = "<RouteSpec type='route'\n"
+    text +=            "id='#{route.persistentid}'\n"
+    text +=            "name='#{route.display_name}'\n"
+    text +=            "version='#{route.version}'\n"
+    text += "/>"
+  end
+
+  def getJourneySpecText(journey, route)
+    "#{journey.display_name.tr(",","_")},#{journey.persistentid},V,#{route.persistentid},#{route.version}"
+  end
+
+  def getJourneySpecXML(journey, route)
+    text  = "<RouteSpec type='journey'\n"
+    text +=            "id='#{route.persistentid}'\n"
+    text +=            "name='#{route.display_name}'\n"
+    text +=            "route='#{route.persistentid}'\n"
+    text +=            "version='#{route.version}'\n"
+    text += "/>"
+  end
+
+  def getRouteDefinitionXML(route)
     box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
 
     text = "<Route type='route'\n"
     text +=        "id='#{route.persistentid}'\n"
-    text += "      name='#{route.display_name}'\n"
-    text += "      routeCode='#{route.code}'\n"
-    text += "      version='#{route.version}'\n"
-    text += "      nw_lon='#{box[0][0]}'\n"
-    text += "      nw_lat='#{box[0][1]}'\n"
-    text += "      se_lon='#{box[1][0]}'\n"
-    text += "      se_lat='#{box[1][1]}'>\n"
+    text +=        "name='#{route.display_name}'\n"
+    text +=        "routeCode='#{route.code}'\n"
+    text +=        "version='#{route.version}'\n"
+    text +=        "nw_lon='#{box[0][0]}'\n"
+    text +=        "nw_lat='#{box[0][1]}'\n"
+    text +=        "se_lon='#{box[1][0]}'\n"
+    text +=        "se_lat='#{box[1][1]}'>\n"
 
     patterns = route.journey_patterns
     # Make the patterns unique.
@@ -152,16 +172,16 @@ class PassController < ApplicationController
     return text
   end
 
-  def route_definiton_text(route)
+  def getRouteDefinitionText(route)
     box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
     text = "R,"
     text += "#{route.persistentid},"
     text += "#{route.version},"
-    text += "#{route.display_name},"
-    text += "#{box[0][0]},"
-    text += "#{box[0][1]},"
-    text += "#{box[1][0]},"
-    text += "#{box[1][1]},"
+    text += "#{route.display_name.tr(",","_")},"
+    text += "#{(box[0][0]*1e6).to_i},"
+    text += "#{(box[0][1]*1e6).to_i},"
+    text += "#{(box[1][0]*1e6).to_i},"
+    text += "#{(box[1][1]*1e6).to_i}"
 
     patterns = route.journey_patterns
     # Make the patterns unique.
@@ -179,31 +199,32 @@ class PassController < ApplicationController
         cs << coords
       end
     end
-    text += "|"
     for coords in cs do
+      text += "\n"
       text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
     end
     return text
   end
 
-  def journey_definition_text(vehicle_journey)
+  def getJourneyDefinitionText(vehicle_journey)
     box = vehicle_journey.journey_pattern.theBox
     text = "J,"
     text += "#{vehicle_journey.persistentid},"
     text += "#{vehicle_journey.service.route.version},"
-    text += "#{vehicle_journey.display_name},"
-    text += "#{(Time.parse("0:00")+vehicle_journey.start_time.minutes).to_i},"
-    text += "#{(Time.parse("0:00")+vehicle_journey.end_time.minutes).to_i},"
+    text += "#{vehicle_journey.display_name.tr(",","_")},"
+    text += "#{(box[0][0]*1e6).to_i},"
+    text += "#{(box[0][1]*1e6).to_i},"
+    text += "#{(box[1][0]*1e6).to_i},"
+    text += "#{(box[1][1]*1e6).to_i},"
     text += "10,"
-    text += "#{box[0][0]},"
-    text += "#{box[0][1]},"
-    text += "#{box[1][0]},"
-    text += "#{box[1][1]},"
+    text += "#{(Time.parse("0:00")+vehicle_journey.start_time.minutes).to_i},"
+    text += "#{(Time.parse("0:00")+vehicle_journey.end_time.minutes).to_i}"
+    text += "\n"
     text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
     return text
   end
 
-  def journey_definition(vehicle_journey)
+  def getJourneyDefinitionXML(vehicle_journey)
     box = vehicle_journey.journey_pattern.theBox
 
     coords = vehicle_journey.journey_pattern.view_path_coordinates["LonLat"]
