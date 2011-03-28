@@ -13,16 +13,6 @@ class JourneyLocation < ActiveRecord::Base
   validates_presence_of :service
   validates_presence_of :route
 
-  # This method returns the time difference
-  # for the coordinates on the route and if it is with in the
-  # expected timing links.
-  # zero means on time (more or less).
-  # negative means late
-  # positive means early.
-  def timediff
-    vehicle_journey.time_difference(distance,reported_time)
-  end
-
   def on_route?
     vehicle_journey.journey_pattern.isOnRoute(coordinates, 60) # 60 feet
   end

@@ -82,21 +82,21 @@ class VehicleJourney < ActiveRecord::Base
   # Returns the time difference in seconds
   # Negative is early.
   def time_difference(distance, time)
-    etd = DateTime.parse("0:00 #{Time.now.zone}") + departure_time.minutes
+    etd = Time.parse("0:00") + departure_time.minutes
     eta = etd + journey_pattern.time_on_path(distance)
-    if eta = 1.minute <= time
+    if eta - 1.minute <= time
       if time <= eta + 1.minute
         # We are for the most part, on time
         return 0;
       else
-  puts "LATE!!!!  #{time} ETA #{eta}  #{time-eta} #{(time-eta)/60} #{((time.to_time - etd.to_time)/60).to_i}"
-        # we are late (positive) in minutes
-        return ((time.to_time - eta.to_time)/60).to_i
+  puts "LATE!!!!  #{time} ETA #{eta}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
+        # we are late (positive) in seconds
+        return ((time - eta)/1.minute).to_i
       end
     else
-  puts "EARLY!!!  #{time} ETA #{eta}  #{time-eta} #{(time-eta)/60} #{((time.to_time - eta.to_time)/60).to_i}"
+  puts "EARLY!!!  #{time} ETA #{eta}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
       # We are early (negative)
-      return ((time.to_time - eta.to_time)/60).to_i
+      return ((time - eta)/1.minute).to_i
     end
   end
 
@@ -172,66 +172,30 @@ class VehicleJourney < ActiveRecord::Base
     @please_stop_simulating = true
   end
 
-  #
-  # This function simulates a vehicle running on the journey at the
-  # immediate time. This simulation is journey pattern specific as it does not
-  # take into account the day of the week and the start and end times.
-  # It starts the route immediately, saving the journey_location and
-  # deleting it when it stops. A journey with a journey_location is
-  # active.
-  #
-  # This function is run from the console in its own process.
-  #
-  def simulate(time_interval, ontime = false)
-    @please_stop_simulating = false
-    tls = journey_pattern.journey_pattern_timing_links
-
+  def simulate(time_interval, sim_time = false)
     # Duration is stored in minutes, need to covert
     dur = duration.minutes
-    # The delta time of the begining of the current timing link
-    journey_time = 0
 
-    if ontime
+    if ! sim_time
       time_start = Time.parse("0:00") + departure_time.minutes
     else
       time_start = Time.now
     end
     puts "Starting Simulation of #{self.name} at #{Time.now} for duration of #{duration} minutes"
 
-    current_link = tls.shift
     time_past = Time.now - time_start
-    linki = 1
-    while time_past < dur && journey_time < dur && current_link != nil do
-      while current_link != nil && time_past > journey_time + current_link.time.minutes do
-        journey_time += current_link.time.minutes
-        current_link = tls.shift
-        linki += 1
-      end
-      if current_link == nil
-        puts "Ending VehicleJourney'#{self.name}' "
-        journey_location.delete
-        return
-      end
-      # Invariant: journey_time < time_past < journey_time + current_link.time.minutes
-      # We now have the contained timing link, time is in miliseconds
-      coordinates = current_link.point_on_path(time_past-journey_time)
+    while time_past < dur do
+      coordinates = journey_pattern.point_on_path(time_past)
       if journey_location == nil
         create_journey_location(:service => service, :route => service.route)
-        details = "--journey start--"
         direction = journey_pattern.starting_direction
-        distance = 0
+        total_distance = 0
       else
-        time_previous = journey_location.reported_time
+        time_previous  = journey_location.reported_time
         coord_previous = journey_location.coordinates
-        #distance = getGeoDistance(coord_previous,coordinates)
-        distance = current_link.distance_on_path(time_past-journey_time) # feet
-        #direction = getGeoAngle(coord_previous, coordinates)
-        direction = current_link.direction_on_path(time_past-journey_time) # radians from North
-        time = time_start + time_past - journey_location.reported_time
-        speed = distance/time
-        details = "dist = #{distance} dir = #{direction} speed = #{speed} time = #{time}"
+        total_distance = journey_pattern.distance_on_path(time_past) # feet
+        direction      = journey_pattern.direction_on_path(time_past) # radians from North
       end
-      total_distance = journey_location.distance + distance
       reported_time  = time_start + time_past
       timediff = time_difference(total_distance, reported_time)
 
@@ -241,26 +205,31 @@ class VehicleJourney < ActiveRecord::Base
       journey_location.last_direction     = journey_location.direction
       journey_location.last_timediff      = journey_location.timediff
 
-      journey_location.coordinates = coordinates
-      journey_location.direction = direction
-      journey_location.distance += total_distance
-      journey_location.timediff = timediff
+      journey_location.coordinates   = coordinates
+      journey_location.direction     = direction
+      journey_location.distance      = total_distance
+      journey_location.timediff      = timediff
       journey_location.reported_time = reported_time
-      journey_location.recorded_time = DateTime.now
+      journey_location.recorded_time = Time.now
 
-      puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at #{reported_time} with timediff #{timediff} direction #{direction} distance #{total_distance} in Link #{linki} details = #{details}"
       journey_location.save!
-      #puts "Sleeping for #{time_interval}"
-      sleep time_interval
-      time_past = Time.now - time_start
-      #time_past += 10.seconds
-      #puts "Wake up at #{time_past}"
+
+      puts "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{coordinates.inspect} at direction #{direction} distance #{total_distance} timediff #{timediff} time #{time_past}"
+
+      if sim_time
+        time_past += time_interval.seconds
+      else
+        sleep time_interval
+        time_past = Time.now - time_start
+      end
+
       if @please_stop_simulating
         break;
       end
     end
   rescue Exception => boom
         puts "Ending VehicleJourney'#{self.name}' because of #{boom}"
+        puts boom.backtrace
   ensure
     if journey_location != nil
       journey_location.destroy
@@ -293,7 +262,7 @@ class VehicleJourney < ActiveRecord::Base
       puts "Starting Journey #{journey.id} #{journey.name}"
       thread = Thread.new do
 	begin
-	  journey.simulate(time_interval, true)
+	  journey.simulate(time_interval)
 	rescue Error => boom
 	  puts "Stopping Journey #{journey.id} #{journey.name} on #{boom}"
 	ensure

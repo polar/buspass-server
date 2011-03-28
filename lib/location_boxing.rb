@@ -148,24 +148,24 @@ module LocationBoxing
   # Earth Mean Radius
   #
   EARTH_RADIUS_FEET = 6371.009 * FEET_PER_KM
-  
+
   def enlargeBox(box,buffer)
     nw_lon = box[0][0]
     nw_lat = box[0][1]
     se_lon = box[1][0]
     se_lat = box[1][1]
-    
+
     nw_lon = nw_lon - (1/Math.cos(nw_lat) * LON_PER_FOOT) * buffer/2.0
     se_lon = se_lon + (1/Math.cos(se_lat) * LON_PER_FOOT) * buffer/2.0
     nw_lat = nw_lat - buffer/2.0 * LAT_PER_FOOT
     se_lat = se_lat + buffer/2.0 * LAT_PER_FOOT
-    
+
     if (180 < abs(nw_lon - se_lon))
       raise "Box enlarged to over 180 longitude"
     end
     return [[nw_lon,nw_lat],[se_lon,se_lat]]
   end
-    
+
   #
   # This function returns the angle (in radians) between
   # the two points.
@@ -190,7 +190,7 @@ module LocationBoxing
   def sign(a)
     a == 0 ? 0 : (a < 0 ? -1 : 1)
   end
-  
+
   #
   # This function delivers the central angle between the two points
   # from the center of the Earth.
@@ -201,10 +201,10 @@ module LocationBoxing
     a = Math.cos(rad(c2[1])) * Math.sin(dlon)
     b = Math.cos(rad(c1[1]))*Math.sin(rad(c2[1])) - Math.sin(rad(c1[1])) * Math.cos(rad(c2[1]))*Math.cos(dlon)
     c = Math.sin(rad(c1[1]))*Math.sin(rad(c2[1])) + Math.cos(rad(c1[1])) * Math.cos(rad(c2[1]))*Math.cos(dlon)
-    
+
     angle = Math.atan2(Math.sqrt(a*a + b*b),c)
   end
-  
+
   #
   # This returns the Geodesic distance on the surface between the two points.
   # It's always positive.
@@ -214,11 +214,11 @@ module LocationBoxing
     dist = EARTH_RADIUS_FEET * ca
     return abs(dist)
   end
-  
+
   #
   # This function returns the Angle relative to the equator heading east
   # of the geodesic hypothenuse between the two points. It is directional.
-  # Angles greater than PI/2 or less than -PI/2 are heading west from c1 to c2. 
+  # Angles greater than PI/2 or less than -PI/2 are heading west from c1 to c2.
   # Otherwise, it's east.
   #
   def getGeoAngle(c1,c2)
@@ -226,17 +226,17 @@ module LocationBoxing
     y = c2[1] - c1[1]
     y = y <= -180 ? y+360 : y
     y = y >= 180 ? y-360 : y
-    
+
     ca = getCentralAngle(c1,c2)
     dist = EARTH_RADIUS_FEET * ca
     ca1 = getCentralAngle(c1,[c2[0],c1[1]])
     dist1 = EARTH_RADIUS_FEET * ca1 * sign(x)
     ca2 = getCentralAngle(c2,[c2[0],c1[1]])
     dist2 = EARTH_RADIUS_FEET * ca2 * sign(y)
-    
+
     angle = Math.atan2(dist2,dist1)
   end
-  
+
   def getRealAngle(c1,c2)
     x = c2[0] - c1[0]
     y = c2[1] - c1[1]
@@ -253,7 +253,7 @@ module LocationBoxing
     p "Error x=#{x}, y=#{y} sq= #{Math.sqrt(x*x+y*y)} rat=#{x / Math.sqrt(x*x+y*y)}"
     raise Error
   end
-                 
+
   #
   # This function normalizes a line relative to its
   # origin. It makes sure that we don't wrap
@@ -314,7 +314,7 @@ module LocationBoxing
     x_feet = x / LAT_PER_FOOT
     return Math.sqrt(x_feet*x_feet+y_feet*y_feet)
   end
-    
+
   #
   # This function creates a location box for a line with a distance buffer in feet
   # that is normalized to have the lower left corner at [-lon(-buffer], lat(-buffer)]
@@ -353,12 +353,12 @@ module LocationBoxing
   #   point [lon,lat] of point in question
   #
   def onLine(c1,c2,buffer,c3)
-    
+
     # we get the difference Geodesic angles
     theta1 = getGeoAngle(c1,c2)
     theta2 = getGeoAngle(c1,c3)
     theta3 = theta2-theta1
-    
+
     #   buf                         buf
     # (---  c1 ----------------- c2 ---)
     #          *      |
@@ -377,7 +377,7 @@ module LocationBoxing
     #
     result = hc1c3 < buffer || abs(theta3) < Math::PI/2 &&
              hc1c3 <= hc1c2 + buffer/2 && abs(Math.sin(theta3) * hc1c3) <= buffer/2
-    
+
     return result
   end
 
@@ -385,7 +385,7 @@ module LocationBoxing
     puts_box([c1,c2])
     puts "#{c2[0]} #{c2[1]}"
   end
-  
+
   def puts_box(box)
     c1 = box[0]
     c2 = box[1]
@@ -395,7 +395,7 @@ module LocationBoxing
     puts "#{c1[0]} #{c2[1]}"
     puts "#{c1[0]} #{c1[1]}"
   end
-    
+
   def onLine1(c1,c2,buffer,point)
 
     # we get the difference Geodesic angles
@@ -406,12 +406,12 @@ module LocationBoxing
     hc1c2 = getGeoDistance(c1,c2)
     result = hc1c3 < buffer || abs(theta3) < Math::PI/2 &&
              hc1c3 <= hc1c2 + buffer/2 && abs(Math.sin(theta3) * hc1c3) <= buffer/2
-    
-    
+
+
     puts "theta1 = #{theta1} theta2 = #{theta2} theta3 = #{theta3}"
     puts "dist_c2 = #{hc1c3} dist_c3 = #{hc1c3}"
     puts "Result #{result}"
-    
+
     return result
   end
 
@@ -453,8 +453,8 @@ module LocationBoxing
     end
     return dist
   end
-  
-  # 
+
+  #
   # This function returns a point on the path given the average speed
   # at a particular time elapsed from the start. It returns nil if
   # the time is negative or if the time is past the end point at
@@ -462,8 +462,8 @@ module LocationBoxing
   #
   # Parameters
   #   view_path_coordinates  [[lon,lat]....]
-  #   average_speed  feet/minute
-  #   time           minutes
+  #   average_speed  feet/unit_time
+  #   time           time_units
   #
   def getPointOnPath(view_path_coordinates, average_speed, time)
     target = average_speed * time
@@ -480,10 +480,10 @@ module LocationBoxing
 	lon = p1[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(p1[1])) * LON_PER_FOOT)
 	lat = p1[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
 	#puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
-	  
+
 	if !onLine(p1,p2,60,[lon,lat])
 	  onLine1(p1,p2,60,[lon,lat])
-	  raise "Not on Path" 
+	  raise "Not on Path"
 	end
 	return [lon,lat]
       end
@@ -494,5 +494,57 @@ module LocationBoxing
     #puts "We are at the end of the line"
     return p1
   end
-    
+
+  #
+  # This function returns a point on the path given the average speed
+  # at a particular time elapsed from the start. It returns nil if
+  # the time is negative or if the time is past the end point at
+  # the designated speed.
+  #
+  # Parameters
+  #   view_path_coordinates  [[lon,lat]....]
+  #   average_speed  feet/unit_time
+  #   time           time_units
+  #
+  def getDirectionOnPath(view_path_coordinates, average_speed, time)
+    target = average_speed * time
+    dist = 0.0
+    vpcs = view_path_coordinates
+    #puts "PoP: ***** vps = #{vpcs.inspect}"
+    p1 = vpcs.first
+    for p2 in vpcs.drop(1) do
+      dist2 = dist + getGeoDistance(p1,p2)
+      #puts "PoP: dist = #{dist} target = #{target} dist2 = #{dist2} target-dist = #{target-dist} p1 = #{p1.inspect} p2= #{p2.inspect}"
+      if (dist < target && target <= dist2)
+        ratio = (target-dist)/(dist2-dist)
+        a = getGeoAngle(p1,p2)
+        lon = p1[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(p1[1])) * LON_PER_FOOT)
+        lat = p1[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
+        #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
+
+        if !onLine(p1,p2,60,[lon,lat])
+          onLine1(p1,p2,60,[lon,lat])
+          raise "Not on Path"
+        end
+        return getGeoAngle(p1,[lon,lat])
+      end
+      dist = dist2
+      p1 = p2
+    end
+    raise "Past Duration"
+  end
+
+  #
+  # This function returns the time on the path given the average speed
+  # at a particular distance elapsed from the start.
+  #
+  # Parameters
+  #   view_path_coordinates  [[lon,lat]....]
+  #   average_speed  feet/miliseconds
+  #   distance       feet
+  #
+  def getTimeOnPath(view_path_coordinates, average_speed, distance)
+    target = distance/average_speed # miliseconds
+  end
+
 end
