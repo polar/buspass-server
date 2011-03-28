@@ -69,7 +69,7 @@ class VehicleJourney < ActiveRecord::Base
     raise Not on Pattern
   end
 
-  # Returns the time difference in seconds
+  # Returns the time difference in minutes
   # Negative is early.
   def time_difference(distance, time)
     etd = Time.parse("0:00") + departure_time.minutes
@@ -80,7 +80,7 @@ class VehicleJourney < ActiveRecord::Base
         return 0;
       else
   puts "LATE!!!!  #{time} ETA #{eta}  #{time-eta}  #{((time - eta)/1.minute).to_i}"
-        # we are late (positive) in seconds
+        # we are late (positive) in minutes
         return ((time - eta)/1.minute).to_i
       end
     else
@@ -178,16 +178,11 @@ class VehicleJourney < ActiveRecord::Base
       coordinates = journey_pattern.point_on_path(time_past)
       if journey_location == nil
         create_journey_location(:service => service, :route => service.route)
-        direction = journey_pattern.starting_direction
-        total_distance = 0
-      else
-        time_previous  = journey_location.reported_time
-        coord_previous = journey_location.coordinates
-        total_distance = journey_pattern.distance_on_path(time_past) # feet
-        direction      = journey_pattern.direction_on_path(time_past) # radians from North
       end
+      total_distance = journey_pattern.distance_on_path(time_past) # feet
+      direction      = journey_pattern.direction_on_path(time_past) # radians from North
       reported_time  = time_start + time_past
-      timediff = time_difference(total_distance, reported_time)
+      timediff       = time_difference(total_distance, reported_time)
 
       journey_location.last_coordinates   = journey_location.coordinates
       journey_location.last_reported_time = journey_location.reported_time

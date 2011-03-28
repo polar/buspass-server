@@ -58,11 +58,11 @@ class PassController < ApplicationController
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
     if @vehicle_journey != nil && @vehicle_journey.journey_location != nil
-      reported  = @vehicle_journey.journey_location.reported_time.to_i
-      recorded  = @vehicle_journey.journey_location.recorded_time.to_i
+      reported  = @vehicle_journey.journey_location.reported_time.to_i # secs from epoch
+      recorded  = @vehicle_journey.journey_location.recorded_time.to_i # secs from epoch
 
       lon, lat  = @vehicle_journey.journey_location.coordinates
-      timediff  = @vehicle_journey.journey_location.timediff.to_i
+      timediff  = @vehicle_journey.journey_location.timediff.to_i # minutes -early,+late
       direction = @vehicle_journey.journey_location.direction
       distance  = @vehicle_journey.journey_location.distance
       on_route  = @vehicle_journey.journey_location.on_route?
