@@ -58,12 +58,13 @@ class PassController < ApplicationController
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
       format.xml  { render :text => ret }
-      format.text { render :text => {
+      format.text { render :text =>
           if @vehicle_journey != nil
              journey_definition_text(@vehicle_journey)
           else
              route_definiton_text(@route)
-          end}}
+          end
+     }
     end
   end
 
