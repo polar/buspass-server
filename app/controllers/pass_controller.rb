@@ -162,7 +162,6 @@ class PassController < ApplicationController
     text += "#{box[0][1]},"
     text += "#{box[1][0]},"
     text += "#{box[1][1]},"
-    text += coords.map{|lon,lat| "#{(lon*1e6).to_i},#{(lat*1e6).to_i},"}.join
 
     patterns = route.journey_patterns
     # Make the patterns unique.
