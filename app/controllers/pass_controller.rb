@@ -57,18 +57,23 @@ class PassController < ApplicationController
   def curloc
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
-    reported  = @vehicle_journey.journey_location.reported_time.to_i
-    recorded  = @vehicle_journey.journey_location.recorded_time.to_i
+    if @vehicle_journey != nil && @vehicle_journey.journey_location != nil
+      reported  = @vehicle_journey.journey_location.reported_time.to_i
+      recorded  = @vehicle_journey.journey_location.recorded_time.to_i
 
-    lon, lat  = @vehicle_journey.journey_location.coordinates
-    timediff  = @vehicle_journey.journey_location.timediff.to_i
-    direction = @vehicle_journey.journey_location.direction
-    distance  = @vehicle_journey.journey_location.distance
-    on_route  = @vehicle_journey.journey_location.on_route?
+      lon, lat  = @vehicle_journey.journey_location.coordinates
+      timediff  = @vehicle_journey.journey_location.timediff.to_i
+      direction = @vehicle_journey.journey_location.direction
+      distance  = @vehicle_journey.journey_location.distance
+      on_route  = @vehicle_journey.journey_location.on_route?
+    end
 
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
       format.text {
+        if @vehicle_journey == nil
+          render :nothing, :status => 505 # not found
+        end
         if @vehicle_journey.journey_location == nil
           render :text => "#{params[:id]},!\n"
         else
@@ -77,6 +82,9 @@ class PassController < ApplicationController
         end
       }
       format.xml  {
+        if @vehicle_journey == nil
+          render :nothing, :status => 505
+        end
         if @vehicle_journey.journey_location == nil
           render :xml => "<NotInService id='#{params[:id]}'/>"
         else
