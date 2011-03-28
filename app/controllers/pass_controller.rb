@@ -216,6 +216,8 @@ class PassController < ApplicationController
 
   def getJourneyDefinitionText(vehicle_journey)
     box = vehicle_journey.journey_pattern.theBox
+    coords = vehicle_journey.journey_pattern.view_path_coordinates["LonLat"]
+
     text = "J,"
     text += "#{vehicle_journey.persistentid},"
     text += "#{vehicle_journey.service.route.version},"
@@ -234,8 +236,8 @@ class PassController < ApplicationController
 
   def getJourneyDefinitionXML(vehicle_journey)
     box = vehicle_journey.journey_pattern.theBox
-
     coords = vehicle_journey.journey_pattern.view_path_coordinates["LonLat"]
+
     text = "<Route type='journey'\n"
     text += "      id='#{vehicle_journey.persistentid}'\n"
     text += "      routeCode='#{vehicle_journey.service.route.code}'\n"
