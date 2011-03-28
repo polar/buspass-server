@@ -22,28 +22,18 @@ class VehicleJourney < ActiveRecord::Base
     puts "AfterSAVE  id #{persistentid} hash #{name.hash.abs} name #{name}"
   end
 
-  def yamlid
-    "#{name}"
-  end
-
+  # Minutes from Midnight
   def start_time
     departure_time
   end
 
   def duration
-    time = 0
-    for timing_link in journey_pattern.journey_pattern_timing_links do
-      time += timing_link.time
-    end
-    return time
+    journey_pattern.duration
   end
 
+  # Minutes from Midnight
   def end_time
-    time = departure_time
-    for timing_link in journey_pattern.journey_pattern_timing_links do
-      time += timing_link.time
-    end
-    return time
+    start_time + duration
   end
 
   def is_scheduled?(time)
