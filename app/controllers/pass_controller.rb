@@ -109,7 +109,8 @@ class PassController < ApplicationController
   def route_definition(route)
     box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
 
-    text = "<Route id='#{route.persistentid}'\n"
+    text = "<Route type='route'\n"
+    text +=        "id='#{route.persistentid}'\n"
     text += "      name='#{route.display_name}'\n"
     text += "      routeCode='#{route.code}'\n"
     text += "      version='#{route.version}'\n"
@@ -148,7 +149,7 @@ class PassController < ApplicationController
     box = vehicle_journey.journey_pattern.theBox
 
     coords = vehicle_journey.journey_pattern.view_path_coordinates["LonLat"]
-    text = "<Route curloc='#{CONTROLLER_URL}/pass/curloc/#{vehicle_journey.persistentid}.xml'\n"
+    text = "<Route type='journey'\n"
     text += "      id='#{vehicle_journey.persistentid}'\n"
     text += "      routeCode='#{vehicle_journey.service.route.code}'\n"
     text += "      version='#{vehicle_journey.service.route.version}'\n"
