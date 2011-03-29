@@ -184,7 +184,7 @@ class VehicleJourney < ActiveRecord::Base
     else
       ti_past = 0
     end
-    time_start = time_base + [ ti_past, depature_time.minutes ].max
+    time_start = time_base + [ ti_past, departure_time.minutes ].max
     while ti_past < duration.minutes do
       if (ti_past >=0)
         # We are operating.
