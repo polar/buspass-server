@@ -184,7 +184,7 @@ class VehicleJourney < ActiveRecord::Base
     else
       ti_past = 0
     end
-    time_start = time_base + ti_past
+    time_start = time_base + [ ti_past, depature_time.minutes ].max
     while ti_past < duration.minutes do
       if (ti_past >=0)
         # We are operating.
@@ -270,6 +270,7 @@ class VehicleJourney < ActiveRecord::Base
       thread = Thread.new do
 	begin
 	  journey.simulate(time_interval, false, logger)
+          logger.info "Journey ended normally #{journey.id} #{journey.name}"
 	rescue Error => boom
 	  logger.info "Stopping Journey #{journey.id} #{journey.name} on #{boom}"
 	ensure
