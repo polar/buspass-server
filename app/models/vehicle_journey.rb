@@ -100,12 +100,9 @@ class VehicleJourney < ActiveRecord::Base
     date = date.to_date
 
     day_field = DATE_FIELDS[date.wday]
-    pday_field = DATE_FIELDS[(date-1.day).wday]
-    # We must find the previous day as date as well, as some journeys may
-    # start before midnight. (negavtive start_time).
     all = self.all :joins => [ :service ],
           :conditions =>
-              ["(services.#{day_field} OR services.#{pday_field})" +
+              ["(services.#{day_field}})" +
                "AND ? BETWEEN services.operating_period_start_date AND services.operating_period_end_date ",
                date],
 	  :readonly => false
