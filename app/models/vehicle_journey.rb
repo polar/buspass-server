@@ -102,7 +102,7 @@ class VehicleJourney < ActiveRecord::Base
     day_field = DATE_FIELDS[date.wday]
     all = self.all :joins => [ :service ],
           :conditions =>
-              ["(services.#{day_field}})" +
+              ["services.#{day_field} " +
                "AND ? BETWEEN services.operating_period_start_date AND services.operating_period_end_date ",
                date],
 	  :readonly => false
