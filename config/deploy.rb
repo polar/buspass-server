@@ -27,8 +27,8 @@ set :user, "buspass"
 #role :web, "buspass@suoc.syr.edu:922"
 #role :db,  "buspass@suoc.syr.edu:922", :primary => true
 # 184.106.109.126 is adiron.com until DNS flushes
-server "buspass@adiron.com", :web, :app, :db, :primary => true
-#server "buspass@192.168.99.3", :web, :app, :db, :primary => true
+#server "buspass@adiron.com", :web, :app, :db, :primary => true
+server "buspass@192.168.99.3", :web, :app, :db, :primary => true
 
 namespace :deploy do
   task :install_gems do
