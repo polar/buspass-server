@@ -43,7 +43,7 @@ class ApisController < ApplicationController
 
   # before_filter :authorized_or_new_user, :get_api
   def authorized_or_new_user
-    puts cookies.inspect
+    logger.error "Cookies #{cookies.inspect}"
     if !authorized?
       logout_keeping_session!
       @current_user = User.new
