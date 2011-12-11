@@ -32,7 +32,7 @@ class BusController < ApplicationController
 		njs = []
 		for j in js do
 		  if j.vehicle_journey.journey_pattern.isOnRoute?(user_loc.coordinates,60)
-			njs += j
+			  njs += j
 		  end
 		end
 		# Next is to decide whether the user is on a journey.

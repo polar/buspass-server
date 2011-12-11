@@ -132,6 +132,24 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     end
     raise "Not on Link"
   end
+  
+  # Prerequisite is that this coordinate is on the line.
+  def get_possible(coord, buffer)
+    vps = view_path_coordinates["LonLat"]
+    vp1 = vps.shift
+    path = []
+    path += vp1
+    points = []
+    while !vps.empty? do
+      vp2 = vps.shift
+      if onLine(vp1, vp2, buffer, coord)
+	points += [getPathDistance(path+coord),getGeoAngle(vp1,vp2)]
+      end
+      vp1 = vp2
+      path += vp1
+    end
+    return points
+  end
 
   # Store the locator box
   def assign_lon_lat_locator_fields

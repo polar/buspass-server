@@ -115,6 +115,29 @@ class JourneyPattern < ActiveRecord::Base
     journey_pattern_timing_links.reduce(0) {|v,tl| v + tl.path_distance}
   end
 
+  # Returns a list of 2 element arrays consisting of total distance 
+  # to the coordinate and the direction for the coordinate. The
+  # coordinate may appear twice or more on a journey pattern because
+  # of a loop or different direction.
+  def get_possible(coord, buffer)
+    tls = journey_pattern_timing_links
+    begin_time = 0.minutes
+    current_dist = 0
+    points = []
+    for tl in tls do
+      if (!tl.isOnRoute(coord,buffer))
+        current_dist += tl.path_distance()
+      else
+        pts = tl.get_possible(coord,buffer)
+        for pt in pts do
+          pt[0] += current_dist
+        end
+        points += pts
+      end
+    end
+    return points
+  end
+  
   # T is in miliseconds from 0
   def get_jtpl_for_time(time)
     tls = journey_pattern_timing_links
