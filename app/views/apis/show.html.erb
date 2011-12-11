@@ -1,0 +1,11 @@
+
+    <script type="text/javascript" src="javascripts/BusPassAPI.js"></script>
+    <script type="text/javascript">
+        function callback(api, result) {
+            alert("Result " + result);
+        };
+        var api = new BusPassAPI("http://localhost:3000/");
+        api.login(callback);
+   </script>
+
+        
