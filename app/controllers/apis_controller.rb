@@ -1,18 +1,22 @@
 class ApisController < ApplicationController
-  include AuthenticatedSystem
-
+  include Devise::Controllers::Rememberable
+  
   CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
 #  CONTROLLER_URL = "http://api.buspass.adiron.com:3000"
 #  CONTROLLER_URL = "http://184.106.109.126:3000"
 
-  before_filter :authorized_or_new_user
+  before_filter :remember_or_new_user
   before_filter :track_user
   before_filter :start_stats
 
   after_filter :end_stats
 
+  def show
+  end
+  
   # This is the login.
   def get_api
+    logger.info(cookies.to_yaml)
     # For now we only have one.
     @api = Api.first
     if @api == nil
@@ -34,22 +38,28 @@ class ApisController < ApplicationController
       @api.definition = text
    end
    respond_to do |format|
-     format.html { render :nothing, :status => 403 } #forbidden
-     format.xml  { render :xml => @api.definition }
+     format.html 
+     format.xml  { logger.info @api.definition
+                   render :xml => @api.definition }
    end
   end
 
   private
 
-  # before_filter :authorized_or_new_user, :get_api
-  def authorized_or_new_user
-    logger.error "Cookies #{cookies.inspect}"
-    if !authorized?
-      logout_keeping_session!
-      @current_user = User.new
-      @current_user.remember_me_for(3.years)
-      @current_user.save!
-      send_remember_cookie!
+  # before_filter :remember_or_new_user, :get_api
+  def remember_or_new_user
+    # Compatability with Android App
+    if ! cookies["remember_user_token"]
+      cookies["remember_user_token"] = cookies["auth_token"]
+    end
+    if ! user_signed_in?
+      logger.error "User is not signed in"
+      logger.error "Creating new user"
+      user = User.new
+      remember_me(user)
+      # Compatiblity with Android App
+      cookies["auth_token"] = cookies["remember_user_token"]
+      sign_in(:user, user)
     end
   end
 
