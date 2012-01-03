@@ -223,11 +223,16 @@ class VehicleJourney < ActiveRecord::Base
       ans[:time] = tm_now
       ans[:ti_diff] = ti_diff
 
-      # Look for ReportedJourneyLocation
-      #         rjls = ReportedJourneyLocation.find(:all,
-      #                     :conditions => {:vehicle_journey_id => self},
-      #                     :order => "reported_time")
-      return ans
+      #Look for ReportedJourneyLocation
+      rjls = ReportedJourneyLocation.find(:all,
+                  :conditions => {:vehicle_journey_id => self},
+                  :order => "reported_time")
+      if (rjls == nil)
+        return ans
+      end
+      for rjl in rjls do
+        ans = journey_pattern.get_possible(rjl.coordinates, 60)
+      end
     else
       return nil
     end

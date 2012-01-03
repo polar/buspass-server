@@ -103,28 +103,32 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   # This function returns the information for the next point on the path
   # from the given distance using the given time.
   # If by the time, the calculated distance is past the length of the path
-  # then this returns a positive :time_left element with the estimated time
+  # then this returns a positive :ti_remains element with the estimated time
   # left over after it reached the end of the path.
   #
   # Parameters
   #   distance   in feet
   #   time       seconds
+  #
   # Returns Hash
-  #  :distance  => distance from given distance and time at average speed
-  #  :coord     => [lon,lat] of point at :distance
-  #  :direction => direction at point
-  #  :time_left => time_left from time if we reached the end of the path.
+  #  :distance   => Distance from given distance and time at average speed
+  #  :coord      => [lon,lat] of point at :distance
+  #  :direction  => Direction at point
+  #  :speed      => Speed at point
+  #  :ti_remains => time remaining in seconds from ti_forward if
+  #                 we reached the end of the path.
   #
   def next_from(distance, time)
     dist = distance + average_speed * time
     #puts "next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
     ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], dist)
+    ans[:speed] = average_speed
     if (ans[:distance] < dist)
       # Then we have a situation where we reached the last point. We have to figure out
       # how much time is left according to the speed.
-      ans[:time_left] = (dist - ans[:distance])/average_speed
+      ans[:ti_remains] = (dist - ans[:distance])/average_speed
     else
-      ans[:time_left] = 0.0
+      ans[:ti_remains] = 0.0
     end
     return ans
   end
@@ -174,19 +178,39 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     raise "Not on Link"
   end
 
+  #
+  # This function returns the possible points on
+  # this path. There may be several due to loops.
+  #
   # Prerequisite is that this coordinate is on the line.
+  #
+  # Returns Array of Hashes
+  #   :coord  => The point
+  #   :distance => The distance to that point.
+  #   :direction => The direction at that point.
+  #   :ti_dist => The supposed time interval to the point in seconds
+  #   :speed => The speed at distance
+  #
   def get_possible(coord, buffer)
     vps = view_path_coordinates["LonLat"]
     vp1 = vps[0]
     vps = vps.drop(1)
     path = [vp1]
     points = []
-    while !vps.empty? do
+    while (!vps.empty?) do
       vp2 = vps[0]
       vps = vps.drop(1)
-      if onLine(vp1, vp2, buffer, coord)
+      if (onLine(vp1, vp2, buffer, coord))
         dist = getPathDistance(path+[coord])
-        points += [[dist,getGeoAngle(vp1,vp2),time_on_path(dist),average_speed]]
+        dir  = getDirectionOnPath(dist)
+        ti_dist = time_on_path(dist)
+        ans = {
+          :coord => coord,
+          :distance => dist,
+          :direction => dir,
+          :ti_dist => ti_dist,
+          :speed => average_speed }
+        points += [ans]
       end
       vp1 = vp2
       path += [vp1]

@@ -141,34 +141,52 @@ class JourneyPattern < ActiveRecord::Base
     return current_dist
   end
 
-  # Get the new distance for time (in seconds) past getting to the distance
-  def next_from(distance, time)
-    time_left = time
+  #
+  # This function returns new estimated location information for
+  # time interval in seconds forward of already traveled distance
+  # on this journey pattern.
+  #
+  # Parameters
+  #  distance    The already traveled distance
+  #  ti_forward  Time in seconds to estimate travel to new location.
+  #
+  # Returns Hash:
+  # Returns Hash
+  #  :distance   => Distance from given distance and time at average speed
+  #  :coord      => [lon,lat] of point at :distance
+  #  :direction  => Direction at point
+  #  :speed      => Speed at point
+  #  :ti_remains => time remaining in seconds from ti_forward if
+  #                 we reached the end of the path.
+  #
+  def next_from(distance, ti_forward)
+    ti_remains = ti_forward
     tls = journey_pattern_timing_links
     current_dist = 0
     # We have to find out which JPTL which has to figure the time.
     for tl in tls do
-      #puts "cur_dist=#{current_dist} time_left=#{time_left} tl.time=#{tl.time}"
+      #puts "cur_dist=#{current_dist} ti_remains=#{ti_remains} tl.time=#{tl.time}"
       pathd = tl.path_distance
       if (current_dist + pathd < distance)
         current_dist += pathd
       else
-        if (tl.time.minutes <= time_left)
+        p tl.time
+        if (tl.time.minutes <= ti_remains)
           current_dist += pathd
-          time_left -= tl.time.minutes
-          # assert time_left >= 0
+          ti_remains -= tl.time.minutes
+          # assert ti_remains >= 0
         else
           # We are almost done. We may hit this twice, because
           # the time left by average speed may take it past
           # the distance of this timing link. If so, we take the
-          # time_left minus the estimated time it took to get to the end of the
+          # ti_remains minus the estimated time it took to get to the end of the
           # timing link. We see where that left over time may get us on the
           # next timing link, if there is one.
-          ans = tl.next_from(distance-current_dist, time_left)
+          ans = tl.next_from(distance-current_dist, ti_remains)
           current_dist += ans[:distance]
           ans[:distance] = current_dist
-          time_left = ans[:time_left]
-          if (time_left == 0)
+          ti_remains = ans[:ti_remains]
+          if (ti_remains == 0)
             # We're done
             return ans
           end
@@ -176,31 +194,47 @@ class JourneyPattern < ActiveRecord::Base
       end
     end
     if (ans == nil)
-      raise "Didn't find a suitable answer time_left = #{time_left} current_dist = #{current_dist}"
+      raise "Didn't find a suitable answer ti_remains = #{ti_remains} current_dist = #{current_dist}"
     end
     return ans
   end
 
-  # Returns a list of 4 element arrays consisting of total distance
-  # to the coordinate and the direction for the coordinate, the scheduled
-  # time from the scheduled departure time, and the average speed. The
-  # coordinate may appear twice or more on a journey pattern because
-  # of a loop or different direction.
+  #
+  # This function returns the possible points on
+  # this journey pattern. There may be several due to loops.
+  #
+  # Prerequisite is that this coordinate is on the line.
+  #
+  # Parameters
+  #   coord   The coordinate, which should be on the route.
+  #   buffer  The distance buffer from the route in feet.
+  #
+  # Returns Array of Hashes
+  #   :coord  => The point
+  #   :distance => The distance to that point.
+  #   :direction => The direction at that point.
+  #   :ti_dist => The supposed time interval to the point in seconds
+  #   :speed => The speed at distance
+  #
   def get_possible(coord, buffer)
     tls = journey_pattern_timing_links
-    current_time = 0.minutes
-    current_dist = 0
+    ti_dist = 0.minutes
+    distance = 0
     points = []
     for tl in tls do
+      # if it is not on this timing link we include
+      # it in the distance calulation.
       if (!tl.isOnRoute(coord,buffer))
-        current_dist += tl.path_distance()
-        current_time += tl.time().minutes
+        distance += tl.path_distance()
+        ti_dist += tl.time().minutes
       else
         pts = tl.get_possible(coord,buffer)
-        p pts
+        # This function only returns distance and time
+        # relative to itself. Add the cumulative distance
+        # and time to all points.
         for pt in pts do
-          pt[0] += current_dist
-          pt[2] += current_time
+          pt[:distance] += distance
+          pt[:ti_dist] += ti_dist
         end
         points += pts
       end
