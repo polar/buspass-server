@@ -194,68 +194,92 @@ class VehicleJourney < ActiveRecord::Base
 
   def simulate_self(time_interval)
     clock = BaseTime.new(base_time+departure_time.minutes-1.minutes)
-    simulate1(time_interval, AuditLogger.new(STDOUT), clock)
+    simulate(time_interval, AuditLogger.new(STDOUT), clock)
   end
 
-  def simulate(time_interval, logger = VehicleJourney.logger, clock = Time)
-    time_start = base_time + departure_time.minutes
-    logger.info("Starting Simulation of #{self.name} start #{time_start} at #{tz(clock.now)}")
+  #
+  # This function figures out the next location information based
+  # on the current distance traveled, the time and the last time
+  # it was figured.
+  # Parameters
+  #  distance          The distance traveled
+  #  tm_last         The time at distance
+  #  tm_now          The time it is now
+  #  tm_start        The time the route is supposed to start
+  # Returns Hash
+  #  :coord => The point on the route
+  #  :distance => The new distance traveled
+  #  :direction => The direction at distance
+  #  :time => The time at new distance
+  #  :diff_time => The time interval from the last distance time
+  #
+  def figure_location(distance, tm_last, tm_now, tm_start)
+    if (tm_now > tm_start) # or we have a Good Reported JourneyLocation.
+      # Maybe the bus is OnRoute sitting there waiting to go.
+      # We are operating.
+
+      ti_diff = tm_now - tm_last
+      ans = journey_pattern.next_from(distance, ti_diff)
+      ans[:time] = tm_now
+      ans[:ti_diff] = ti_diff
+
+      # Look for ReportedJourneyLocation
+      #         rjls = ReportedJourneyLocation.find(:all,
+      #                     :conditions => {:vehicle_journey_id => self},
+      #                     :order => "reported_time")
+      return ans
+    else
+      return nil
+    end
+  end
+
+  def simulate(interval, logger = VehicleJourney.logger, clock = Time)
+    tm_start = base_time + departure_time.minutes
+    logger.info("Starting Simulation of #{self.name} start #{tm_start} at #{tz(clock.now)}")
 
     # Since we are working with time intervals, we get our current time base.
-    time_base = clock.now
-    time_last = time_base
+    tm_base = clock.now
     # The base time may be midnight of the next day due to TimeZone.
     # If so the time_from_midnight will be negative. However, before we
     # add 24 hours to it, we check to see if we are scheduled within
     # a negative departure time (before midnight).
-    ti_from_midnight = time_base - base_time
+    ti_from_midnight = tm_base - base_time
     if (departure_time <= 0 && departure_time.minutes <= ti_from_midnight &&
          ti_from_midnight <= departure_time.minutes + duration.minutes)
-      time_start = time_start + 24.hours
+      tm_start = tm_start + 24.hours
     end
     target_distance = journey_pattern.path_distance
-    logger.info("Simulation of #{self.name} start #{time_start} for #{departure_time} after #{base_time} path_distance #{target_distance}")
-    current_distance = 0
-    time = time_base
-    while (current_distance < target_distance) do
-      if (time > time_start) # or we have a Good Reported JourneyLocation.
-        # Maybe the bus is OnRoute sitting there waiting to go.
-        # We are operating.
-        # Look for ReportedJourneyLocation
-#         rjls = ReportedJourneyLocation.find(:all,
-#                     :conditions => {:vehicle_journey_id => self},
-#                     :order => "reported_time")
-        rjls = nil
-        if (rjls == nil)
-          # we have to estimate the next location.
-          time_diff = time - time_last
-          ans = journey_pattern.next_from(current_distance, time_diff)
-          if journey_location == nil
-            create_journey_location(:service => service, :route => service.route)
-          end
+    logger.info("Simulation of #{self.name} start #{tm_start} for #{departure_time} after #{base_time} path_distance #{target_distance}")
+    distance = 0.0
+    tm_last = tm_base
+    tm_now = tm_base
+    while (distance < target_distance) do
+      ans = figure_location(distance, tm_last, tm_now, tm_start)
+      if (ans != nil)
+        if journey_location == nil
+          create_journey_location(:service => service, :route => service.route)
+        else
           journey_location.last_coordinates   = journey_location.coordinates
           journey_location.last_reported_time = journey_location.reported_time
           journey_location.last_distance      = journey_location.distance
           journey_location.last_direction     = journey_location.direction
           journey_location.last_timediff      = journey_location.timediff
-
-          journey_location.coordinates   = ans[:coord]
-          journey_location.direction     = ans[:direction]
-          journey_location.distance      = ans[:distance]
-          journey_location.timediff      = time_diff
-          journey_location.reported_time = time
-          journey_location.recorded_time = clock.now
-
-          journey_location.save!
-          current_distance = ans[:distance]
-          logger.info "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{ans.inspect}  at #{tz(time)} timediff #{time_diff} time #{time}"
-
         end
+        journey_location.coordinates   = ans[:coord]
+        journey_location.direction     = ans[:direction]
+        journey_location.distance      = ans[:distance]
+        journey_location.timediff      = ans[:ti_diff]
+        journey_location.reported_time = ans[:time]
+        journey_location.recorded_time = clock.now
+
+        journey_location.save!
+        distance = ans[:distance]
+        logger.info "VehicleJourney '#{self.name}' recording location #{journey_location.id} of #{ans.inspect}  at #{tz(tm_now)} time #{tm_now}"
       end
-      sleep time_interval
-      time_last = time
-      time = clock.now
-      logger.info("VehicleJourney '#{self.name}' tick #{time} time_start #{time_start}")
+      tm_last = tm_now
+      sleep interval
+      tm_now = clock.now
+      logger.info("VehicleJourney '#{self.name}' tick #{tm_now} tm_start #{tm_start}")
       if @please_stop_simulating
         logger.info "Stopping the Simulation of #{name}"
         break
@@ -264,9 +288,9 @@ class VehicleJourney < ActiveRecord::Base
         logger.info "Break didnt' work: #{name}"
       end
     end
-    logger.info "Ending VehicleJourney #{self.name} at #{current_distance} at #{time}"
+    logger.info "Ending VehicleJourney '#{self.name}' at #{distance} at #{tm_now}"
   rescue Exception => boom
-    logger.info "Ending VehicleJourney'#{self.name}' because of #{boom}"
+    logger.info "Ending VehicleJourney '#{self.name}' because of #{boom}"
     logger.info boom.backtrace
   ensure
     if journey_location != nil
