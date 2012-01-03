@@ -84,7 +84,7 @@ class JourneyPattern < ActiveRecord::Base
   # Names the JPTL with an index into this JourneyPattern.
   def get_journey_pattern_timing_link(position)
     name = "#{self.name} #{position}"
-    jptl = journey_pattern_timing_links.find_or_initialize_by_name(
+    jptl = JourneyPatternTimingLink.find_or_initialize_by_name(
               :name => name,
               :position => position)
     return jptl
@@ -115,29 +115,99 @@ class JourneyPattern < ActiveRecord::Base
     journey_pattern_timing_links.reduce(0) {|v,tl| v + tl.path_distance}
   end
 
-  # Returns a list of 2 element arrays consisting of total distance 
-  # to the coordinate and the direction for the coordinate. The
+  # Get the new distance for time (in seconds) past getting to the distance
+  def distance_on_path_from(distance, time)
+    time_left = time
+    tls = journey_pattern_timing_links
+    current_dist = 0
+    # We have to find out which JPTL which has to figure the time.
+    for tl in tls do
+      puts "cur_dist=#{current_dist} time_left=#{time_left} tl.time=#{tl.time}"
+      pathd = tl.path_distance
+      if (current_dist + pathd < distance)
+        current_dist += pathd
+      else
+        if (tl.time.minutes <= time_left)
+          current_dist += pathd
+          time_left -= tl.time.minutes
+          # assert time_left >= 0
+        else
+          # We are done.
+          current_dist += tl.distance_on_path_from(distance-current_dist, time_left)
+          time_left -= time_left
+        end
+      end
+    end
+    return current_dist
+  end
+
+  # Get the new distance for time (in seconds) past getting to the distance
+  def next_from(distance, time)
+    time_left = time
+    tls = journey_pattern_timing_links
+    current_dist = 0
+    # We have to find out which JPTL which has to figure the time.
+    for tl in tls do
+      #puts "cur_dist=#{current_dist} time_left=#{time_left} tl.time=#{tl.time}"
+      pathd = tl.path_distance
+      if (current_dist + pathd < distance)
+        current_dist += pathd
+      else
+        if (tl.time.minutes <= time_left)
+          current_dist += pathd
+          time_left -= tl.time.minutes
+          # assert time_left >= 0
+        else
+          # We are almost done. We may hit this twice, because
+          # the time left by average speed may take it past
+          # the distance of this timing link. If so, we take the
+          # time_left minus the estimated time it took to get to the end of the
+          # timing link. We see where that left over time may get us on the
+          # next timing link, if there is one.
+          ans = tl.next_from(distance-current_dist, time_left)
+          current_dist += ans[:distance]
+          ans[:distance] = current_dist
+          time_left = ans[:time_left]
+          if (time_left == 0)
+            # We're done
+            return ans
+          end
+        end
+      end
+    end
+    if (ans == nil)
+      raise "Didn't find a suitable answer time_left = #{time_left} current_dist = #{current_dist}"
+    end
+    return ans
+  end
+
+  # Returns a list of 4 element arrays consisting of total distance
+  # to the coordinate and the direction for the coordinate, the scheduled
+  # time from the scheduled departure time, and the average speed. The
   # coordinate may appear twice or more on a journey pattern because
   # of a loop or different direction.
   def get_possible(coord, buffer)
     tls = journey_pattern_timing_links
-    begin_time = 0.minutes
+    current_time = 0.minutes
     current_dist = 0
     points = []
     for tl in tls do
       if (!tl.isOnRoute(coord,buffer))
         current_dist += tl.path_distance()
+        current_time += tl.time().minutes
       else
         pts = tl.get_possible(coord,buffer)
+        p pts
         for pt in pts do
           pt[0] += current_dist
+          pt[2] += current_time
         end
         points += pts
       end
     end
     return points
   end
-  
+
   # T is in miliseconds from 0
   def get_jtpl_for_time(time)
     tls = journey_pattern_timing_links

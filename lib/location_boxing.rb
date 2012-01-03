@@ -466,33 +466,9 @@ module LocationBoxing
   #   time           time_units
   #
   def getPointOnPath(view_path_coordinates, average_speed, time)
-    target = average_speed * time
-    dist = 0.0
-    vpcs = view_path_coordinates
-    #puts "PoP: ***** vps = #{vpcs.inspect}"
-    p1 = vpcs.first
-    for p2 in vpcs.drop(1) do
-      dist2 = dist + getGeoDistance(p1,p2)
-      #puts "PoP: dist = #{dist} target = #{target} dist2 = #{dist2} target-dist = #{target-dist} p1 = #{p1.inspect} p2= #{p2.inspect}"
-      if (dist < target && target <= dist2)
-	ratio = (target-dist)/(dist2-dist)
-	a = getGeoAngle(p1,p2)
-	lon = p1[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(p1[1])) * LON_PER_FOOT)
-	lat = p1[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
-	#puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
-
-	if !onLine(p1,p2,60,[lon,lat])
-	  onLine1(p1,p2,60,[lon,lat])
-	  raise "Not on Path"
-	end
-	return [lon,lat]
-      end
-      dist = dist2
-      p1 = p2
-    end
-    # Don't go father than the last point.
-    #puts "We are at the end of the line"
-    return p1
+    distance = average_speed * time
+    ans = getDirectionAndPointOnPath(view_path_coordinates, distance)
+    return ans[:coord]
   end
 
   #
@@ -507,7 +483,27 @@ module LocationBoxing
   #   time           time_units
   #
   def getDirectionOnPath(view_path_coordinates, average_speed, time)
-    target = average_speed * time
+    distance = average_speed * time
+    ans = getDirectionAndPointOnPath(view_path_coordinates, distance)
+    return ans[:direction]
+  end
+
+
+  #
+  # This function returns the direction and point on the path at
+  # a particular distance from the start. It returns the data
+  # for the last point on the path  if the given target distance
+  # is beyond the length of the path.
+  #
+  # Parameters
+  #   view_path_coordinates  [[lon,lat]....]
+  #   target         distance in feet
+  # Returns Hash:
+  #   :distance => the given distance
+  #   :direction => the direction at the point on path
+  #   :coord => the [lat,lon] coordinates of the point at target
+  #
+  def getDirectionAndPointOnPath(view_path_coordinates, target)
     dist = 0.0
     vpcs = view_path_coordinates
     #puts "PoP: ***** vps = #{vpcs.inspect}"
@@ -521,17 +517,19 @@ module LocationBoxing
         lon = p1[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(p1[1])) * LON_PER_FOOT)
         lat = p1[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
         #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
-
+        # This is just integrity check. It can be eliminated.
         if !onLine(p1,p2,60,[lon,lat])
           onLine1(p1,p2,60,[lon,lat])
           raise "Not on Path"
         end
-        return getGeoAngle(p1,[lon,lat])
+        return { :distance => target, :direction => getGeoAngle(p1,[lon,lat]), :coord => [lon,lat]}
       end
+      last_point = p1
       dist = dist2
       p1 = p2
     end
-    raise "Past Duration"
+    # target is past distance. Return last point.
+    return { :distance => dist, :direction => getGeoAngle(last_point,p1), :coord => p1 }
   end
 
   #

@@ -10,6 +10,8 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   belongs_to :from, :class_name => "StopPoint", :dependent => :destroy
   serialize  :view_path_coordinates
 
+  after_initialize  :init_view_path_coordinates
+
   # We have unique names so that we can readably identify them
   validates_uniqueness_of :name
 
@@ -22,8 +24,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
 
   before_validation   :assign_lon_lat_locator_fields
 
-  # TODO: Not sure if we need this.
-  def after_initialize
+  def init_view_path_coordinates
     if view_path_coordinates == nil
       self.view_path_coordinates = { "LonLat" => [[0.0,0.0],[0.0,0.0]] }
     end
@@ -36,6 +37,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   DIST_FUDGE = 100
 
   def validate
+    vp2 = vps.shift
     first = view_path_coordinates["LonLat"].first
     last = view_path_coordinates["LonLat"].last
     if DIST_FUDGE < getGeoDistance(from.location.coordinates["LonLat"],first) ||
@@ -90,6 +92,43 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     average_speed * t
   end
 
+  # Distance must be less than path distance
+  # time must be less than time.
+  def distance_on_path_from(distance, t)
+    #puts "d=#{distance} t=#{t} = #{distance_on_path(t + time_on_path(distance))}"
+    distance_on_path(t + time_on_path(distance))
+  end
+
+  #
+  # This function returns the information for the next point on the path
+  # from the given distance using the given time.
+  # If by the time, the calculated distance is past the length of the path
+  # then this returns a positive :time_left element with the estimated time
+  # left over after it reached the end of the path.
+  #
+  # Parameters
+  #   distance   in feet
+  #   time       seconds
+  # Returns Hash
+  #  :distance  => distance from given distance and time at average speed
+  #  :coord     => [lon,lat] of point at :distance
+  #  :direction => direction at point
+  #  :time_left => time_left from time if we reached the end of the path.
+  #
+  def next_from(distance, time)
+    dist = distance + average_speed * time
+    #puts "next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
+    ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], dist)
+    if (ans[:distance] < dist)
+      # Then we have a situation where we reached the last point. We have to figure out
+      # how much time is left according to the speed.
+      ans[:time_left] = (dist - ans[:distance])/average_speed
+    else
+      ans[:time_left] = 0.0
+    end
+    return ans
+  end
+
   # t is time in miliseconds from 0
   def direction_on_path(t)
     getDirectionOnPath(view_path_coordinates["LonLat"], average_speed, t)
@@ -103,7 +142,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   # This function returns the estimated LonLat for the location on the
   # path for the time from the start of the link, based upon the average
   # speed.
-  # t is time in miliseconds from 0
+  # t is time in seconds from 0
   def point_on_path(t)
     coord = getPointOnPath(view_path_coordinates["LonLat"], average_speed, t)
     if !isOnRoute(coord, 60)
@@ -122,31 +161,35 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   # Prerequisite is that this coordinate is on the line.
   def direction(coord, buffer)
     vps = view_path_coordinates["LonLat"]
-    vp1 = vps.shift
+    vp1 = vps[0]
+    vps = vps.drop(1)
     while !vps.empty? do
-      vp2 = vps.shift
+      vp2 = vps[0]
+      vps = vps.drop(1)
       if onLine(vp1, vp2, buffer, coord)
-	return getGeoAngle(vp1,vp2)
+        return getGeoAngle(vp1,vp2)
       end
       vp1 = vp2
     end
     raise "Not on Link"
   end
-  
+
   # Prerequisite is that this coordinate is on the line.
   def get_possible(coord, buffer)
     vps = view_path_coordinates["LonLat"]
-    vp1 = vps.shift
-    path = []
-    path += vp1
+    vp1 = vps[0]
+    vps = vps.drop(1)
+    path = [vp1]
     points = []
     while !vps.empty? do
-      vp2 = vps.shift
+      vp2 = vps[0]
+      vps = vps.drop(1)
       if onLine(vp1, vp2, buffer, coord)
-	points += [getPathDistance(path+coord),getGeoAngle(vp1,vp2)]
+        dist = getPathDistance(path+[coord])
+        points += [[dist,getGeoAngle(vp1,vp2),time_on_path(dist),average_speed]]
       end
       vp1 = vp2
-      path += vp1
+      path += [vp1]
     end
     return points
   end
