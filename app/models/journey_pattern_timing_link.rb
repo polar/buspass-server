@@ -92,13 +92,6 @@ class JourneyPatternTimingLink < ActiveRecord::Base
     average_speed * t
   end
 
-  # Distance must be less than path distance
-  # time must be less than time.
-  def distance_on_path_from(distance, t)
-    #puts "d=#{distance} t=#{t} = #{distance_on_path(t + time_on_path(distance))}"
-    distance_on_path(t + time_on_path(distance))
-  end
-
   #
   # This function returns the information for the next point on the path
   # from the given distance using the given time.

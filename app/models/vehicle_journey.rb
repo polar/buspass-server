@@ -57,10 +57,6 @@ class VehicleJourney < ActiveRecord::Base
     journey_pattern.point_on_path(time_of_day-(base_time+start_time.minutes))
   end
 
-  def distance_on_path_from(distance, time)
-    journey_pattern.distance_on_path_from(distance,time)
-  end
-
   #
   # Is the coordinate feasible given the specific time. If so, it returns it.
   # The coordinate mus be onRoute.

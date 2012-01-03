@@ -115,32 +115,6 @@ class JourneyPattern < ActiveRecord::Base
     journey_pattern_timing_links.reduce(0) {|v,tl| v + tl.path_distance}
   end
 
-  # Get the new distance for time (in seconds) past getting to the distance
-  def distance_on_path_from(distance, time)
-    time_left = time
-    tls = journey_pattern_timing_links
-    current_dist = 0
-    # We have to find out which JPTL which has to figure the time.
-    for tl in tls do
-      puts "cur_dist=#{current_dist} time_left=#{time_left} tl.time=#{tl.time}"
-      pathd = tl.path_distance
-      if (current_dist + pathd < distance)
-        current_dist += pathd
-      else
-        if (tl.time.minutes <= time_left)
-          current_dist += pathd
-          time_left -= tl.time.minutes
-          # assert time_left >= 0
-        else
-          # We are done.
-          current_dist += tl.distance_on_path_from(distance-current_dist, time_left)
-          time_left -= time_left
-        end
-      end
-    end
-    return current_dist
-  end
-
   #
   # This function returns new estimated location information for
   # time interval in seconds forward of already traveled distance
@@ -154,7 +128,7 @@ class JourneyPattern < ActiveRecord::Base
   # Returns Hash
   #  :distance   => Distance from given distance and time at average speed
   #  :coord      => [lon,lat] of point at :distance
-  #  :direction  => Direction at point
+  #  :direction  => Direction at pointti_remaining
   #  :speed      => Speed at point
   #  :ti_remains => time remaining in seconds from ti_forward if
   #                 we reached the end of the path.
@@ -170,9 +144,8 @@ class JourneyPattern < ActiveRecord::Base
       if (current_dist + pathd < distance)
         current_dist += pathd
       else
-        p tl.time
         if (tl.time.minutes <= ti_remains)
-          current_dist += pathd
+          current_dist += pathdti_remaining
           ti_remains -= tl.time.minutes
           # assert ti_remains >= 0
         else
