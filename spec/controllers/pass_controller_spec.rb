@@ -4,6 +4,9 @@ require "hpricot"
 describe PassController, "Controller Spec" do
   include Devise::TestHelpers
 
+  #
+  # Spec for /pass/route_journeys
+  #
   it "route_journeys without any arguments should get all routes" do
     login_test_user
 
@@ -57,6 +60,70 @@ describe PassController, "Controller Spec" do
     get :route_journeys, :format => "text", :routes => [route.id]
     assigns[:routes].should == [route]
     response.body.should == expected
+  end
+
+  #
+  # Spec for /pass/route_journey
+  #   We are not going to bother with the spec for the
+  #   Route or the Journey, as we would just be copying functions
+  #   from the controller. We will just make sure we get the
+  #   correct routes.
+  #
+  it "route_journey should return text version of journey" do
+    login_test_user
+
+    journey = VehicleJourney.first
+
+    get :route_journey, { :format => :text, :type => "V", :id => journey.persistentid }
+
+    assigns[:object].should == journey
+  end
+
+  it "route_journey should return text version of route" do
+    login_test_user
+
+    route = Route.first
+
+    get :route_journey, { :format => :text, :type => "R", :id => route.persistentid }
+
+    assigns[:object].should == route
+  end
+
+  it "curloc should return not in service for journey that isn't currently running" do
+    login_test_user
+
+    journey = VehicleJourney.first
+
+    get :curloc, :format => :text, :id => journey.persistentid
+
+    response.body.should == "#{journey.persistentid},!\n"
+  end
+
+  it "curloc should return given journey location" do
+    login_test_user
+
+    route = Route.first
+    assert_not_nil route, "No routes"
+
+    service = Service.first :conditions => { :route_id => route }
+    assert_not_nil service, "No service"
+
+    journey = VehicleJourney.first :conditions => { :service_id => service }
+    assert_not_nil journey, "No journey"
+
+    jp = journey.journey_pattern
+
+    info = jp.location_info_at(jp.path_distance/2)
+
+    jl = journey.create_journey_location(:service => service, :route => route)
+    jl.coordinates = info[:coord]
+    jl.direction = info[:direction]
+    jl.distance = info[:distance]
+    #jl.speed = info[:speed]
+    jl.save!
+
+    get :curloc, :format => :text, :id => journey.persistentid
+    assigns[:journey_location].should == jl
   end
 
   private

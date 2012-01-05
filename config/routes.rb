@@ -4,6 +4,7 @@ BuspassServer::Application.routes.draw do
 
   match 'pass/route_journeys'
   match 'pass/route_journey'
+  match 'pass/curloc'
 
   resource 'apis' do
     member do

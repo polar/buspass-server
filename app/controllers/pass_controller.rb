@@ -56,15 +56,9 @@ class PassController < ApplicationController
     @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
 
     if @vehicle_journey != nil && @vehicle_journey.journey_location != nil
-      reported  = @vehicle_journey.journey_location.reported_time.to_i # secs from epoch
-      recorded  = @vehicle_journey.journey_location.recorded_time.to_i # secs from epoch
-
-      lon, lat  = @vehicle_journey.journey_location.coordinates
-      timediff  = @vehicle_journey.journey_location.timediff.to_i # minutes -early,+late
-      direction = @vehicle_journey.journey_location.direction
-      distance  = @vehicle_journey.journey_location.distance
-      on_route  = @vehicle_journey.journey_location.on_route?
+      @journey_location = @vehicle_journey.journey_location
     end
+
 
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden
@@ -72,27 +66,52 @@ class PassController < ApplicationController
         if @vehicle_journey == nil
           render :nothing, :status => 505 # not found
         end
-        if @vehicle_journey.journey_location == nil
+        if @journey_location == nil
           render :text => "#{params[:id]},!\n"
         else
-          render :text =>
-            "#{params[:id]},#{(lon*1e6).to_i},#{(lat*1e6).to_i},#{reported},#{recorded},#{timediff},#{direction},#{distance},#{onroute}\n"
+          render :text => getJourneyLocationText(@journey_location)
         end
       }
       format.xml  {
         if @vehicle_journey == nil
           render :nothing, :status => 505
         end
-        if @vehicle_journey.journey_location == nil
+        if @journey_location == nil
           render :xml => "<NotInService id='#{params[:id]}'/>"
         else
-          render :xml => "<JP id='#{params[:id]}' lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' distance='#{distance}' onroute='#{on_route}'/>"
-        end
+          render :xml =>  getJourneyLocationXML(@journey_location)
+      end
       }
     end
   end
 
   private
+
+  def getJourneyLocationText(journey_location)
+    reported  = journey_location.reported_time.to_i # secs from epoch
+    recorded  = journey_location.recorded_time.to_i # secs from epoch
+
+    lon, lat  = journey_location.coordinates
+    timediff  = journey_location.timediff.to_i # minutes -early,+late
+    direction = journey_location.direction
+    distance  = journey_location.distance
+    on_route  = journey_location.on_route?
+
+    return "#{params[:id]},#{(lon*1e6).to_i},#{(lat*1e6).to_i},#{reported},#{recorded},#{timediff},#{direction},#{distance},#{on_route}\n"
+  end
+
+  def getJourneyLocationXML(journey_location)
+    reported  = journey_location.reported_time.to_i # secs from epoch
+    recorded  = journey_location.recorded_time.to_i # secs from epoch
+
+    lon, lat  = journey_location.coordinates
+    timediff  = journey_location.timediff.to_i # minutes -early,+late
+    direction = journey_location.direction
+    distance  = journey_location.distance
+    on_route  = journey_location.on_route?
+
+    return "<JP id='#{params[:id]}' lon='#{lon}' lat='#{lat}' reported_time='#{reported}' recorded_time='#{recorded}' timediff='#{timediff}' direction='#{direction}' distance='#{distance}' onroute='#{on_route}'/>"
+  end
 
   def getDefinitionText(route_journey)
     if (route_journey.is_a? Route)
