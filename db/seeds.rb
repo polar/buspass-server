@@ -4,4 +4,7 @@
 # Examples:
 #
 #   cities = City.create([{ :name => 'Chicago' }, { :name => 'Copenhagen' }])
-#   Mayor.create(:name => 'Daley', :city => cities.first)
+#   Major.create(:name => 'Daley', :city => cities.first)
+Mapping.find_or_create_by_name("LonLat")
+Direction.find_or_create_by_name("Inbound")
+Direction.find_or_create_by_name("Outbound")

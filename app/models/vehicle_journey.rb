@@ -207,28 +207,86 @@ class VehicleJourney < ActiveRecord::Base
   #  :distance => The new distance traveled
   #  :direction => The direction at distance
   #  :time => The time at new distance
-  #  :diff_time => The time interval from the last distance time
+  #  :ti_diff => The time interval from the last distance time
+  #  :ti_offschedule => The time off schedule.
   #
   def figure_location(distance, tm_last, tm_now, tm_start)
+    #p [tm_last, tm_now, tm_start]
     if (tm_now > tm_start) # or we have a Good Reported JourneyLocation.
       # Maybe the bus is OnRoute sitting there waiting to go.
       # We are operating.
 
       ti_diff = tm_now - tm_last
-      ans = journey_pattern.next_from(distance, ti_diff)
-      ans[:time] = tm_now
-      ans[:ti_diff] = ti_diff
+      estimate = journey_pattern.next_from(distance, ti_diff)
+      estimate[:time] = tm_now
+      estimate[:ti_diff] = ti_diff
 
       #Look for ReportedJourneyLocation
       rjls = ReportedJourneyLocation.find(:all,
                   :conditions => {:vehicle_journey_id => self},
-                  :order => "reported_time")
+                  :order => "reported_time, recorded_time")
       if (rjls == nil)
-        return ans
+        return estimate
       end
+      nrjls = []
       for rjl in rjls do
-        ans = journey_pattern.get_possible(rjl.coordinates, 60)
+        ans = journey_pattern.get_possible(rjl.location, 60)
+        p ans
+        for a in ans do
+          #p [(tm_last-tm_start)-2.minutes, a[:ti_dist], (tm_now-tm_start)+1.minute]
+          if (tm_last-tm_start-2.minutes) <= a[:ti_dist] && a[:ti_dist] <= (tm_now-tm_start+1.minute)
+            rjl.location_info = a;
+            nrjls += [rjl]
+          end
+        end
       end
+      count = nrjls.size
+      # Make two Vectors, reported_time and distance
+      a,b = nrjls.reduce([[tm_last.to_i],[distance]]) { |a,rjl| [a[0] += [rjl.reported_time.to_i], a[1] += [rjl.distance]] }
+      # Simply, right now we figure the correlation to reported times and distances.
+      # We'll get the one with the least variance from the line.
+      simple_regression = Statsample::Regression.simple(a.to_scale(),b.to_scale())
+      best = nil
+      #p estimate
+      for rjl in nrjls do
+        #p [distance, rjl.distance, estimate[:distance]]
+        if (distance < rjl.distance)
+          # We have a good confidence if the reported time is in line
+          # with the estimated time.
+          if (tm_last < rjl.reported_time && tm_now > rjl.reported_time)
+            # We check the recorded time.
+            rjl.variance = (simple_regression.x(rjl.reported_time.to_i)-rjl.distance)**2
+            # and something indicating closemess to the tm_now.
+            rjl.variance *= 1 + (tm_now - rjl.reported_time)
+            #p [best != nil ? best.variance : nil, rjl.variance]
+            if (best == nil || rjl.variance < best.variance)
+              best = rjl
+              best.off_schedule = best.reported_time - (tm_start + rjl.location_info[:ti_dist])
+            end
+          end
+        end
+      end
+      if (best != nil)
+        ans = {
+          :reported       => true,
+          :variance       => best.variance,
+          :distance       => best.distance,
+          :direction      => best.direction,
+          :coord          => best.location,
+          :speed          => best.speed,
+          :time           => best.reported_time,
+          :ti_offschedule => best.off_schedule,
+          :ti_diff        => tm_last - best.reported_time
+        }
+      else
+        estimate[:reported] = false;
+        estimate[:ti_offschedule] = tm_now - (tm_start + estimate[:ti_dist]),
+        estimate[:ti_diff] = tm_last - tm_now
+        ans = estimate
+      end
+      # Get rid of the processed reported journey locations.
+      rjls.each { |r| r.delete }
+      return ans
     else
       return nil
     end

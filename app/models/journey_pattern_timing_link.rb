@@ -36,8 +36,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   # make sure the connecting coordinates are close enough to each other.
   DIST_FUDGE = 100
 
-  def validate
-    vp2 = vps.shift
+  def check_consistency!
     first = view_path_coordinates["LonLat"].first
     last = view_path_coordinates["LonLat"].last
     if DIST_FUDGE < getGeoDistance(from.location.coordinates["LonLat"],first) ||
@@ -93,6 +92,30 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   end
 
   #
+  # This function returns the information for the point on the path
+  # from the given distance.
+  #
+  # Parameters
+  #   distance   in feet
+  #
+  # Returns Hash
+  #  :distance   => Distance from given distance and time at average speed
+  #  :coord      => [lon,lat] of point at :distance
+  #  :direction  => Direction at point
+  #  :speed      => Speed at point
+  #  :ti_dist    => Scheduled Time in seconds to get to distance
+  #
+  def location_info_at(distance)
+    #puts "next_from(#{distance}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
+    if (distance > path_distance)
+      raise "distance is greater than path distance"
+    end
+    ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], distance, average_speed)
+    ans[:speed] = average_speed
+    return ans
+  end
+
+  #
   # This function returns the information for the next point on the path
   # from the given distance using the given time.
   # If by the time, the calculated distance is past the length of the path
@@ -108,21 +131,16 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   #  :coord      => [lon,lat] of point at :distance
   #  :direction  => Direction at point
   #  :speed      => Speed at point
+  #  :ti_dist    => Scheduled Time in seconds to get to distance
   #  :ti_remains => time remaining in seconds from ti_forward if
   #                 we reached the end of the path.
   #
   def next_from(distance, time)
     dist = distance + average_speed * time
-    #puts "next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
-    ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], dist)
+    #puts "JPTL:next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
+    ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], dist, average_speed)
     ans[:speed] = average_speed
-    if (ans[:distance] < dist)
-      # Then we have a situation where we reached the last point. We have to figure out
-      # how much time is left according to the speed.
-      ans[:ti_remains] = (dist - ans[:distance])/average_speed
-    else
-      ans[:ti_remains] = 0.0
-    end
+    ans[:ti_remains] = time - (ans[:distance]-distance)/average_speed
     return ans
   end
 
@@ -195,14 +213,7 @@ class JourneyPatternTimingLink < ActiveRecord::Base
       vps = vps.drop(1)
       if (onLine(vp1, vp2, buffer, coord))
         dist = getPathDistance(path+[coord])
-        dir  = getDirectionOnPath(dist)
-        ti_dist = time_on_path(dist)
-        ans = {
-          :coord => coord,
-          :distance => dist,
-          :direction => dir,
-          :ti_dist => ti_dist,
-          :speed => average_speed }
+        ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"],dist,average_speed)
         points += [ans]
       end
       vp1 = vp2

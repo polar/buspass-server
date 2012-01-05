@@ -18,18 +18,25 @@ class GoogleUriViewPath < ActiveRecord::Base
   end
 
   def self.getViewPathCoordinates(uri)
-    cache = self.find_or_create(uri)
-    if cache.view_path_coordinates == nil
-      doc = open("#{uri}&output=kml") {|f| Hpricot(f) }
-      x = doc.at("geometrycollection/linestring/coordinates").inner_html.split(",0.000000 ").map {|x| eval "[#{x}]" }
-      ans = { "LonLat" => x }
-      cache.view_path_coordinates = ans
-      cache.save!
+    if uri.start_with?("http:")
+      cache = self.find_or_create(uri)
+      if cache.view_path_coordinates == nil
+	doc = open("#{uri}&output=kml") {|f| Hpricot(f) }
+	x = doc.at("geometrycollection/linestring/coordinates").inner_html.split(",0.000000 ").map {|x| eval "[#{x}]" }
+	ans = { "LonLat" => x }
+	cache.view_path_coordinates = ans
+	cache.save!
+      else
+	ans = cache.view_path_coordinates
+      end
+  #     puts "URI = #{ans.inspect}"
+      return ans
     else
-      ans = cache.view_path_coordinates
+      # KML
+      doc = Hpricot(uri)
+      x = doc.at("placemark/linestring/coordinates").inner_html.strip.split(",0 ").map {|x| eval "[#{x}].take(2)" }
+      ans = { "LonLat" => x }
     end
-#     puts "URI = #{ans.inspect}"
-    return ans
   end
 
   def self.read(file)
@@ -43,7 +50,15 @@ class GoogleUriViewPath < ActiveRecord::Base
         t.id = opts["uri"].hash.abs
       end
       t.uri = opts["uri"]
-      t.view_path_coordinates = YAML::load(opts["coordinates"])
+      s =  YAML::load(opts["coordinates"])
+      if (s.is_a? Hash)
+        t.view_path_coordinates = s
+      elsif (s.is_a? String)
+        t.view_path_coordinates = YAML::load(s)
+      else
+        raise "Invalid Format for Coordinates"
+      end
+
       ts << t
       t.save!
     end

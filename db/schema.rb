@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20110818200946) do
+ActiveRecord::Schema.define(:version => 20111227211900) do
 
   create_table "apis", :force => true do |t|
     t.integer  "major_version"
@@ -135,6 +135,18 @@ ActiveRecord::Schema.define(:version => 20110818200946) do
     t.datetime "updated_at"
   end
 
+  create_table "reported_journey_locations", :force => true do |t|
+    t.integer  "user_id"
+    t.integer  "vehicle_journey_id"
+    t.string   "location"
+    t.float    "direction"
+    t.float    "speed"
+    t.datetime "reported_time"
+    t.datetime "recorded_time"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "routes", :force => true do |t|
     t.string   "name"
     t.string   "code"
@@ -174,6 +186,19 @@ ActiveRecord::Schema.define(:version => 20110818200946) do
     t.string   "description"
     t.integer  "location_id"
     t.integer  "network_version_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  create_table "user_locations", :force => true do |t|
+    t.integer  "user_id"
+    t.datetime "reported_time"
+    t.datetime "recorded_time"
+    t.text     "coordinates"
+    t.float    "direction"
+    t.text     "last_coordinates"
+    t.float    "last_direction"
+    t.datetime "last_reported_time"
     t.datetime "created_at"
     t.datetime "updated_at"
   end

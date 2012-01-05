@@ -502,34 +502,47 @@ module LocationBoxing
   #   :distance => the given distance
   #   :direction => the direction at the point on path
   #   :coord => the [lat,lon] coordinates of the point at target
+  #   :ti_dist => the scheduled time to distance.
   #
-  def getDirectionAndPointOnPath(view_path_coordinates, target)
+  def getDirectionAndPointOnPath(view_path_coordinates, target, average_speed)
     dist = 0.0
     vpcs = view_path_coordinates
     #puts "PoP: ***** vps = #{vpcs.inspect}"
-    p1 = vpcs.first
+    last_point = vpcs.first
+    ti_dist = 0
     for p2 in vpcs.drop(1) do
-      dist2 = dist + getGeoDistance(p1,p2)
-      #puts "PoP: dist = #{dist} target = #{target} dist2 = #{dist2} target-dist = #{target-dist} p1 = #{p1.inspect} p2= #{p2.inspect}"
-      if (dist < target && target <= dist2)
-        ratio = (target-dist)/(dist2-dist)
-        a = getGeoAngle(p1,p2)
-        lon = p1[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(p1[1])) * LON_PER_FOOT)
-        lat = p1[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
-        #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
-        # This is just integrity check. It can be eliminated.
-        if !onLine(p1,p2,60,[lon,lat])
-          onLine1(p1,p2,60,[lon,lat])
-          raise "Not on Path"
+      direction = getGeoAngle(last_point,p2)
+      if (dist < target)
+        dist2 = dist + getGeoDistance(last_point,p2)
+        #puts "PoP: dist = #{dist} target = #{target} dist2 = #{dist2} target-dist = #{target-dist} last_point = #{last_point.inspect} p2= #{p2.inspect}"
+        if (target <= dist2)
+          ratio = (target-dist)/(dist2-dist)
+          a = getGeoAngle(last_point,p2)
+          lon = last_point[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(last_point[1])) * LON_PER_FOOT)
+          lat = last_point[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
+          #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
+          # This is just integrity check. It can be eliminated.
+          if !onLine(last_point,p2,60,[lon,lat])
+            onLine1(last_point,p2,60,[lon,lat])
+            raise "Not on Path"
+          end
+          ti_dist += getGeoDistance(last_point,[lon,lat])/average_speed
+          return { :distance => target, :direction => getGeoAngle(last_point,[lon,lat]),
+                  :coord => [lon,lat], :ti_dist => ti_dist}
         end
-        return { :distance => target, :direction => getGeoAngle(p1,[lon,lat]), :coord => [lon,lat]}
+        ti_dist += getGeoDistance(last_point,p2)/average_speed
+        dist = dist2
+        last_point = p2
       end
-      last_point = p1
-      dist = dist2
-      p1 = p2
     end
     # target is past distance. Return last point.
-    return { :distance => dist, :direction => getGeoAngle(last_point,p1), :coord => p1 }
+    return { :distance => dist, :direction => direction, :coord => last_point, :ti_dist => ti_dist }
+  end
+
+  def getDirectionOnPathAt(view_path_coordinates, target)
+    # It doesn't matter what the speed is for what we are looking for.
+    ans = getDirectionOnPath(view_path_coordinates, target, 1)
+    return ans[:direction]
   end
 
   #

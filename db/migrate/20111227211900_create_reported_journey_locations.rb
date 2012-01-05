@@ -6,8 +6,8 @@ class CreateReportedJourneyLocations < ActiveRecord::Migration
       t.string        :location
       t.float         :direction
       t.float         :speed
-      t.datetime      :recorded_time
       t.datetime      :reported_time
+      t.datetime      :recorded_time
       t.timestamps
     end
   end

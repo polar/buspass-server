@@ -41,11 +41,12 @@ class JourneyPattern < ActiveRecord::Base
   # of the respective links are close enough to each other.
   DIST_FUDGE = 100
 
-  def validate
+  def check_consistency!
     last_jptl = journey_pattern_timing_links.first
     last_to_location = last_jptl.to.location
     last_coord = last_jptl.view_path_coordinates["LonLat"].last
 
+    #p last_jptl.view_path_coordinates
     for jptl in journey_pattern_timing_links.drop(1) do
       location = jptl.from.location
       if DIST_FUDGE < getGeoDistance(last_to_location.coordinates["LonLat"],location.coordinates["LonLat"])
@@ -130,45 +131,79 @@ class JourneyPattern < ActiveRecord::Base
   #  :coord      => [lon,lat] of point at :distance
   #  :direction  => Direction at pointti_remaining
   #  :speed      => Speed at point
+  #
+  def location_info_at(distance)
+    tls = journey_pattern_timing_links
+    current_dist = 0
+    ti_dist = 0.minutes
+    # We have to find out which JPTL which has to figure the time.
+    for tl in tls do
+      pathd = tl.path_distance
+      if (current_dist + pathd < distance)
+        current_dist += pathd
+        ti_dist += tl.time.minutes
+      else
+        ans = tl.location_info_at(distance-current_dist)
+        ans[:distance] += current_dist
+        ans[:ti_dist] += ti_dist
+        return ans
+      end
+    end
+    if (ans == nil)
+      raise "Didn't find a suitable answer current_dist = #{current_dist}"
+    end
+    return ans
+  end
+
+
+  #
+  # This function returns new estimated location information for
+  # time interval in seconds forward of already traveled distance
+  # on this journey pattern.
+  #
+  # Parameters
+  #  distance    The already traveled distance
+  #  ti_forward  Time in seconds to estimate travel to new location.
+  #
+  # Returns Hash:
+  # Returns Hash
+  #  :distance   => Distance from given distance and time at average speed
+  #  :coord      => [lon,lat] of point at :distance
+  #  :direction  => Direction at pointti_remaining
+  #  :speed      => Speed at point
   #  :ti_remains => time remaining in seconds from ti_forward if
   #                 we reached the end of the path.
   #
   def next_from(distance, ti_forward)
+    #puts "XXXXXX  next_from(#{distance}, #{ti_forward}"
     ti_remains = ti_forward
     tls = journey_pattern_timing_links
     current_dist = 0
+    ti_dist = 0.minutes
     # We have to find out which JPTL which has to figure the time.
+    ans = tls[0].location_info_at(0)
+    ans[:ti_remains] = ti_remains
     for tl in tls do
-      #puts "cur_dist=#{current_dist} ti_remains=#{ti_remains} tl.time=#{tl.time}"
       pathd = tl.path_distance
-      if (current_dist + pathd < distance)
-        current_dist += pathd
-      else
-        if (tl.time.minutes <= ti_remains)
-          current_dist += pathdti_remaining
-          ti_remains -= tl.time.minutes
-          # assert ti_remains >= 0
-        else
+      #puts "XXXXXX    cur_dist=#{current_dist} pathd=#{pathd} ti_remains=#{ti_remains} tl.time=#{tl.time.minutes} #{distance}"
+      if (ti_remains > 0)
+          # current_dist >= distance && current_dist >= distance - pathd
           # We are almost done. We may hit this twice, because
           # the time left by average speed may take it past
           # the distance of this timing link. If so, we take the
           # ti_remains minus the estimated time it took to get to the end of the
           # timing link. We see where that left over time may get us on the
           # next timing link, if there is one.
-          ans = tl.next_from(distance-current_dist, ti_remains)
+          tldist = [pathd, [distance-current_dist,0].max].min
+          ans = tl.next_from(tldist, ti_remains)
           current_dist += ans[:distance]
+          ti_dist += ans[:ti_dist]
           ans[:distance] = current_dist
+          ans[:ti_dist] = ti_dist
           ti_remains = ans[:ti_remains]
-          if (ti_remains == 0)
-            # We're done
-            return ans
-          end
-        end
       end
     end
-    if (ans == nil)
-      raise "Didn't find a suitable answer ti_remains = #{ti_remains} current_dist = #{current_dist}"
-    end
+    #puts "XXXXX Returns #{ans.inspect}"
     return ans
   end
 
@@ -308,11 +343,18 @@ class JourneyPattern < ActiveRecord::Base
 
   # Store the locator box
   def assign_lon_lat_locator_fields
+    if (!journey_pattern_timing_links.empty?)
       box = journey_pattern_timing_links.reduce(journey_pattern_timing_links.first.theBox) {|v,jptl| combineBoxes(v,jptl.theBox)}
       self.nw_lon= box[0][0]
       self.nw_lat= box[0][1]
       self.se_lon= box[1][0]
       self.se_lat= box[1][1]
+    else
+      self.nw_lon= 0
+      self.nw_lat= 0
+      self.se_lon= 0
+      self.se_lat= 0
+    end
   end
 
 end
