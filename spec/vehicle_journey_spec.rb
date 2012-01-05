@@ -235,7 +235,6 @@ describe "VehicleJourney" do
     tm_last = report_many(vj,tm_start, pd, deltas)
 
     info2 = vj.figure_location(pd, tm_last, tm_last+(50.seconds), tm_start)
-    p info2
     # Due to round off error and different precisions we just make sure
     # that they are close enough.
     assert info2[:reported]

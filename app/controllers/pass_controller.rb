@@ -3,7 +3,7 @@ class PassController < ApplicationController
 
   CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
 
-  before_filter :login_required
+  before_filter :authenticate_user!
   before_filter :start_stats
 
   after_filter :end_stats
@@ -25,12 +25,10 @@ class PassController < ApplicationController
 
     @journey_locations = JourneyLocation.find_by_routes(@routes)
 
-    text = ""
-    text << @journey_locations.map {|x| getJourneySpecText(x.vehicle_journey,x.route)}.join("\n")
-    if !text.empty?
-      text << "\n"
-    end
-    text << @routes.map {|x| getRouteSpecText(x)}.join("\n")
+    texts = []
+    texts += @journey_locations.map {|x| getJourneySpecText(x.vehicle_journey,x.route)}
+    texts += @routes.map {|x| getRouteSpecText(x)}
+    text = texts.join("\n")
 
     respond_to do |format|
       format.html { render :nothing, :status => 403 } #forbidden

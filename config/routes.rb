@@ -2,12 +2,8 @@ BuspassServer::Application.routes.draw do
 
   devise_for :users
 
-  resources 'pass' do
-    member do
-      get 'route_journeys'
-      get 'route_journey'
-    end
-  end
+  match 'pass/route_journeys'
+  match 'pass/route_journey'
 
   resource 'apis' do
     member do
