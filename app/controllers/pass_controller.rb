@@ -1,5 +1,4 @@
 class PassController < ApplicationController
-  include AuthenticatedSystem
 
   CONTROLLER_URL = "http://adiron.kicks-ass.net:3000"
 

@@ -39,5 +39,7 @@ gem "hpricot"
 
 group :development, :test do
   gem 'rspec-rails'
+  gem 'capybara'
+  gem 'launchy'
   gem 'database_cleaner'
 end

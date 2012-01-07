@@ -5,6 +5,11 @@ BuspassServer::Application.routes.draw do
   match 'pass/route_journeys'
   match 'pass/route_journey'
   match 'pass/curloc'
+  match "webmap", :controller => "webmap", :action => "index"
+  match 'webmap/:action/:id', :controller => "webmap"
+
+  match 'bus/report_location' => 'bus#report_location', :via => :post
+
 
   resource 'apis' do
     member do

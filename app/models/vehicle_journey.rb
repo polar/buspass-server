@@ -68,7 +68,7 @@ class VehicleJourney < ActiveRecord::Base
     time_on_path = date_time - (base_time + start_time.minutes)
     pts = journey_pattern.get_possible(coord, 60)
     for p in pts do
-      if (earlybuf.minutes + time_on_path < p[2] && p[2] <= time_on_path + latebuf.minutes)
+      if (time_on_path + earlybuf.minutes  < p[:ti_dist] && p[:ti_dist] <= time_on_path + latebuf.minutes)
         return p
       end
     end

@@ -7,6 +7,9 @@ class ReportedJourneyLocation < ActiveRecord::Base
   # reported_time
   # recorded_time
   # confirmed
+  belongs_to :user
+  belongs_to :vehicle_journey
+
   serialize :location
 
   attr_accessor :variance

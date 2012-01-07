@@ -20,4 +20,5 @@ class JourneyLocation < ActiveRecord::Base
   def self.find_by_routes(routes)
     self.all :conditions => [ "route_id IN (?)", routes]
   end
+
 end

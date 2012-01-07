@@ -1,2 +1,17 @@
 <H1>WebMap</H1>
-
+    <script type="text/javascript">
+      var layer;
+      var opacity = 1.0;
+      function doit() {
+        addLayer(layer = getLayer(145929140));
+      };
+      var newstyle = {
+                    strokeColor: "red",
+                    strokeWidth: 5,
+                    strokeOpacity: 0.5,
+                    cursor: "pointer"
+                };
+    </script>
+<button onclick="doit()">Hello</button>
+<button onclick="opacity-=0.1;layer.setOpacity(opacity);">Hello</button>
+<button onclick="layer.select();layer.redraw()">Hello</button>

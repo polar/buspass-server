@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Webmap for Busme</title> 
+    <title>Webmap for Busme</title>
     <%= stylesheet_link_tag "OpenLayers-2.10/theme/default/style.css" %>
     <%= stylesheet_link_tag "style.css" %>
     <%= javascript_include_tag "OpenLayers-2.10/OpenLayers.js" %>
@@ -16,29 +16,51 @@
 	    map.displayProjection = new OpenLayers.Projection("EPSG:4326");
             var mapnik = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
 
-            var polygonLayer = getLayer(1);
-
-            map.addLayers([mapnik, polygonLayer]);
+            map.addLayers([mapnik]);
             map.addControl(new OpenLayers.Control.LayerSwitcher());
             map.addControl(new OpenLayers.Control.MousePosition());
             map.setCenter(new OpenLayers.LonLat(-76.146669, 43.050952).transform(
 	      new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
 	      new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
 	      ), 13 // Zoom level
-              )
+              );
+              var highlight = OpenLayers.Control.SelectFeature( {
+                  highlightOnly : true
+              });
+              map.addControl(highlight);
+              highlight.activate();
+        }
+
+        function addLayer(layer) {
+            map.addLayers([layer]);
         }
 
         function getLayer(routeid) {
+           var defaultStyle = new OpenLayers.Style(
+                {
+                    strokeColor: "blue",
+                    strokeWidth: 3,
+                    strokeOpacity: 0.5,
+                    cursor: "pointer"
+                });
+           var selectStyle =  new OpenLayers.Style(
+                {
+                    strokeColor: "red",
+                    strokeWidth: 3,
+                    strokeOpacity: 0.5,
+                    cursor: "pointer"
+                });
+           function clickAlert(event) {
+               alert("Clicked");
+           };
+           var styleMap = new OpenLayers.StyleMap({
+                         'default': defaultStyle,
+                         'select': selectStyle});
            layer = new OpenLayers.Layer.Vector("Route", {
-		style: {
-		    strokeColor: "blue",
-		    strokeWidth: 3,
-		    strokeOpacity: 0.5,
-		    cursor: "pointer"
-		},
+                styleMap : styleMap,
                 strategies: [new OpenLayers.Strategy.Fixed()],
                 protocol: new OpenLayers.Protocol.HTTP({
-		  url: "http://localhost:3000/webmap/route/145929140.json",
+		  url: "http://localhost:3000/webmap/route/"+routeid+".json",
 		  format: new OpenLayers.Format.GeoJSON({
 		      ignoreExtraDims: true,
 		      internalProjection: new OpenLayers.Projection("EPSG:900913"),
@@ -51,7 +73,7 @@
     </script>
     <%= yield :head %>
   </head>
-  <body onload="init()"> 
+  <body onload="init()">
    <div id="map" class="smallmap"></div>
    <%= yield %>
   </body>
