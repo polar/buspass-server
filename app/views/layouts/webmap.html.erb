@@ -7,22 +7,24 @@
     <title>Webmap for Busme</title>
     <%= stylesheet_link_tag "OpenLayers-2.10/theme/default/style.css" %>
     <%= stylesheet_link_tag "style.css" %>
+    <%= javascript_include_tag "OpenLayers-2.10/lib/Firebug/firebug.js" %>
     <%= javascript_include_tag "OpenLayers-2.10/OpenLayers.js" %>
     <script type="text/javascript">
+        debug=true;
         var map;
         function init(){
             map = new OpenLayers.Map('map');
-	    map.projection = "EPSG:23030";
-	    map.displayProjection = new OpenLayers.Projection("EPSG:4326");
+            map.projection = "EPSG:23030";
+            map.displayProjection = new OpenLayers.Projection("EPSG:4326");
             var mapnik = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
 
             map.addLayers([mapnik]);
             map.addControl(new OpenLayers.Control.LayerSwitcher());
             map.addControl(new OpenLayers.Control.MousePosition());
             map.setCenter(new OpenLayers.LonLat(-76.146669, 43.050952).transform(
-	      new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-	      new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
-	      ), 13 // Zoom level
+              new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+              new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
+              ), 13 // Zoom level
               );
               var highlight = OpenLayers.Control.SelectFeature( {
                   highlightOnly : true
@@ -56,18 +58,48 @@
            var styleMap = new OpenLayers.StyleMap({
                          'default': defaultStyle,
                          'select': selectStyle});
-           layer = new OpenLayers.Layer.Vector("Route", {
+           
+
+           var layer = new OpenLayers.Layer.Vector("Route", {
                 styleMap : styleMap,
                 strategies: [new OpenLayers.Strategy.Fixed()],
+                
+           
                 protocol: new OpenLayers.Protocol.HTTP({
-		  url: "http://localhost:3000/webmap/route/"+routeid+".json",
-		  format: new OpenLayers.Format.GeoJSON({
-		      ignoreExtraDims: true,
-		      internalProjection: new OpenLayers.Projection("EPSG:900913"),
-		      externalProjection: new OpenLayers.Projection("EPSG:4326")
-		  })
-		})
+                  url: "http://localhost:3000/webmap/route/"+routeid+".json",
+                  format: new OpenLayers.Format.GeoJSON({
+                      ignoreExtraDims: true,
+                      internalProjection: new OpenLayers.Projection("EPSG:900913"),
+                      externalProjection: new OpenLayers.Projection("EPSG:4326")
+                  })
+                })
            });
+            var report = function(e) {
+                OpenLayers.Console.log(e.type, e.feature.id);
+            };
+            
+            var highlightCtrl = new OpenLayers.Control.SelectFeature(layer, {
+                hover: true,
+                highlightOnly: true,
+                renderIntent: "temporary",
+                eventListeners: {
+                    beforefeaturehighlighted: report,
+                    featurehighlighted: report,
+                    featureunhighlighted: report
+                },
+            });
+
+            var selectCtrl = new OpenLayers.Control.SelectFeature(layer, {
+                 clickout: true,
+                 onSelect: clickAlert
+                 }
+            );
+
+            map.addControl(highlightCtrl);
+            map.addControl(selectCtrl);
+
+            highlightCtrl.activate();
+            selectCtrl.activate();
            return layer;
         }
     </script>
