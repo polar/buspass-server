@@ -5,6 +5,7 @@
       var opacity = 1.0;
         var api;
         var map;
+        var routesController;
         var routesView;
         function login() {
             api.login(function() {});
@@ -15,9 +16,7 @@
             for (var i in result) {
                api.fetchRouteDefinition(result[i],
                    function(route) {
-                       route.setMap(map);
-                       map.addFeatureFromRoute(route);
-                       routesView.addRoute(route);
+                       routesController.addRoute(route);
                    });
             };
         });
@@ -27,13 +26,10 @@
 // execute your scripts when DOM is ready. this is a good habit
 $(function() {
         $("body").layout({ applyDefaultStyles: true });
-        routesView = new RoutesView("#routesView .items");
         // initialize scrollable with mousewheel support
         $("#routesView").scrollable({ vertical: true, mousewheel: true });
          api = new BusPassAPI("http://localhost:3000/");
-         map = new RouteMap();
-         map.init();
-         map.setRoutesView(routesView);
+         routesController = new BusPass.RoutesController("#routesView .items","map");
 });
 </script>
 

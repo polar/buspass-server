@@ -90,34 +90,69 @@ RoutesView.prototype = {
     return div;
   },
 
+  /**
+   * Method: _selectRoute
+   * This method only selects the route in this View.
+   * It doesn't touch the map. This function is usually
+   * called by the Map after it hasnselected the route.
+   */
   _selectRoute : function(route) {
       route.setSelected(true);
       route.__element.className = "item row route-selected";
   },
 
+  /**
+   * Method: _unselectRoute
+   * This method only unselects the route in this View.
+   * It doesn't touch the map. This function is usually
+   * called by the Map after it has unselected the route.
+   */
   _unselectRoute : function(route) {
       route.setSelected(false);
       route.__element.className = "item row";
   },
 
-  selectRoute : function(route) {
-      this._unselectAllRoutes();
-      map._selectRoute(route);
-      // The damn map will have already called this.
-      this._selectRoute(route);
-  },
-
-  unselectRoute : function(route) {
-      this.unselectAllRoutes();
-      map._unselectRoute(route);
-  },
-
+  /**
+   * Method: _unselectAllRoutes
+   * This method only unselects the routes in this View.
+   * It doesn't touch the map. This function is usually
+   * called by the Map after it has unselected a route.
+   */
   _unselectAllRoutes : function() {
       for(i in this._routes) {
           this._unselectRoute(this._routes[i]);
       }
   },
 
+  /**
+   * Method: selectRoute
+   * This method is called by things that want to select the
+   * route in this View. It will select the route in the map
+   * as well.
+   */
+  selectRoute : function(route) {
+      this._unselectAllRoutes();
+      // The map will trigger this._selectRoute();
+      map._selectRoute(route);
+  },
+
+  /**
+   * Method: unselectRoute
+   * This method is called by things that want to unselect the
+   * route. It will unselect the route in the Map as well.
+   */
+  unselectRoute : function(route) {
+      this.unselectAllRoutes();
+      // The map will trigger this._unselectRoute();
+      map._unselectRoute(route);
+  },
+
+  /**
+   * Method: unselectAllRoutes
+   * This method is called by things that want to clear the
+   * selected Route(s). It will unselect the route in the Map as
+   * well.
+   */
   unselectAllRoutes : function() {
       for(i in this._routes) {
           this.unselectRoute(this._routes[i]);
@@ -125,11 +160,19 @@ RoutesView.prototype = {
   },
 
   _highlightRoute : function(route) {
-      route.__element.className = "item row route-highlighted";
+      if (route.isSelected() {
+          route.__element.className = "item row route-selected route-highlighted";
+      } else {
+          route.__element.className = "item row route-highlighted";
+      }
   },
 
   _unhighlightRoute : function(route) {
-      route.__element.className = "item row";
+      if (route.isSelected() {
+          route.__element.className = "item row route-selected";
+      } else {
+          route.__element.className = "item row";
+      }
   },
 
   highlightRoute : function(route) {
@@ -154,6 +197,7 @@ RoutesView.prototype = {
   _sortRouteElements : function() {
       var self = this;
       var children = $(self._element).children("div");
+      // TODO: We can just insert at the right place.
       children.detach().sort(
           function(a,b) {
               return self._compareRouteElement(a,b);
@@ -161,18 +205,17 @@ RoutesView.prototype = {
       $(self._element).append(children);
   },
 
-  /**
-   * Method: private _sortRoutes
-   * This method sorts routes according to the _compareRoutes compariator.
-   */
-  _sortRoutes : function() {
+    /**
+     * Method: private _sortRoutes
+     * This method sorts routes according to the _compareRoutes compariator.
+     */
+    _sortRoutes : function() {
     var rd = this;
     this._routes = this._routes.sort(
-                            function(a,b) {
-                              return rd._compareRoutes(a,b);
-                            }
-                                );
-  },
+        function(a,b) {
+            return rd._compareRoutes(a,b);
+        });
+    },
 
   /**
    * Method: private _redisplayRoutes

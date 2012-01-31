@@ -69,6 +69,10 @@ Route.prototype = {
     },
 
     _type : null,
+    getType : function() {
+        return this._type;
+    },
+
     isJourney : function() {
         return this._type == "journey";
     },
@@ -97,67 +101,8 @@ Route.prototype = {
 
     // Display Stuff
 
-    /**
-     * Method: getDisplayName
-     * This method returns the string that will be used to display
-     * the route.
-     *
-     * Returns: String
-     */
-    getDisplayName : function() {
+    getDisplayName : function () {
         return this.getName();
-    },
-
-    /**
-     * Method: setMap
-     * This function sets the Map for which the Route is
-     * drawn on.
-     *
-     * Parameters:
-     * map - {<BusPass.Map>}
-     */
-    setMap : function(map) {
-        this._map = map;
-    },
-
-    /**
-     * Method: getMap
-     * This function gets the Map for which the Route is
-     * drawn on.
-     *
-     * Returns:
-     * {<BusPass.Map}
-     */
-    getMap : function() {
-        return this._map;
-    },
-
-    /**
-     * Method: setMapFeatures
-     * This function sets the feature on the map.
-     * This call is used when the Route is loaded from Internet Data.
-     *
-     * Parameters
-     * features [<OpenLayers.Feature.Vector>]
-     */
-    setMapFeatures : function(features) {
-        var self = this;
-        this._mapFeatures = features;
-        $.each(this._mapFeatures, function(i,a) {
-                a.__route = self;
-            });
-    },
-
-    /**
-     * Method: getMapFeatures
-     * This method returns the vector features associated with the
-     * this Route.
-     *
-     * Returns:
-     * [<OpenLayers.Feature.Vector>]
-     */
-    getMapFeatures : function(features) {
-        return this._mapFeatures;
     },
 
     /**
