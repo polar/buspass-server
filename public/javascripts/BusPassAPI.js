@@ -11,18 +11,18 @@ BusPassAPI.prototype = {
         this.hosturl = url;
         this.apiMap.minorVersion = "1";
         this.apiMap.majorVersion = "0";
-        
+
         this.apiMap["getRouteJourneyIds"] = url + "/webmap/route_journeys.text";
         this.apiMap["getRouteDefinition"] = url + "/webmap/route_journey/";
         this.apiMap["getJourneyLocation"] = url + "/webmap/curloc/";
     },
 
     _loggedIn : false,
-    
+
     isLoggedIn : function() {
         return this._loggedIn;
     },
-    
+
     login : function(cb) {
         this.updateAPIMap( cb );
     },
@@ -43,34 +43,47 @@ BusPassAPI.prototype = {
         };
         return callback.bind(this);
     },
-    
+
     load : function(xml) {
         this._loadAPIMap(xml);
     },
-    
+
     _loadAPIMap : function(xml) {
         doc = xml.getElementsByTagName("API")[0];
         this.apiMap["getRouteJourneyIds"] = doc.getAttribute("getRouteJourneyIds");
         this.apiMap["getRouteDefinition"] = doc.getAttribute("getRouteDefinition");
         this.apiMap["getJourneyLocation"] = doc.getAttribute("getJourneyLocation");
     },
-    
+
     updateAPIMap : function(cb) {
-        var http = new XMLHttpRequest();
-        http.onreadystatechange = this._onAPIResponse(http, cb);
-        http.open("GET", this.hostUrl + "apis/get_api.xml?majorVersion=1&minorVersion=0", true);
-        http.send();
+      $.get(this.hostUrl + "apis/get_api.xml?majorVersion=1&minorVersion=0",cb, "html");
+//         var http = new XMLHttpRequest();
+//         http.onreadystatechange = this._onAPIResponse(http, cb);
+//         http.open("GET", this.hostUrl + "apis/get_api.xml?majorVersion=1&minorVersion=0", true);
+//         http.send();
     },
-    
+
     getRouteJourneyIds : function() {
         return this.apiMap["getRouteJourneyIds"];
     },
-    
+
     getRouteDefinition : function() {
         return this.apiMap["getRouteDefinition"];
     },
-    
+
     getJourneyLocation : function() {
         return this.apiMap["getJourneyLocation"];
     },
+
+    getRouteDefinition : function( nameid ) {
+      var url = this.apiMap["getRouteDfinition"] + nameid.id + ".json";
+
+      if (nameid.type != null) {
+        args += "&type=" + nameid.type;
+      }
+      var route = new Route(this) {
+        route.loadJSON(openURL(url+"?"+args);
+      }
+      return route;
+    }
 };

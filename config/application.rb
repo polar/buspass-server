@@ -38,5 +38,8 @@ module BuspassServer
 
     # Configure sensitive parameters which will be filtered from the log file.
     config.filter_parameters += [:password]
+
+    # Configure the Asset Pipeline
+    config.assets.enabled = true
   end
 end

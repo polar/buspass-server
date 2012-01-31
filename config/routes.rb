@@ -7,6 +7,7 @@ BuspassServer::Application.routes.draw do
   match 'pass/curloc'
   match "webmap", :controller => "webmap", :action => "index"
   match 'webmap/:action/:id', :controller => "webmap"
+  match 'webmap/:action', :controller => "webmap"
 
   match 'bus/report_location' => 'bus#report_location', :via => :post
 

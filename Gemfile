@@ -31,6 +31,13 @@ gem "mysql"
 #   gem 'webrat'
 # end
 
+gem "jquery-rails"
+gem "sprockets"
+gem "sass-rails"
+gem 'coffee-script'
+gem 'uglifier'
+
+
 gem "jasmine"
 
 gem "devise"

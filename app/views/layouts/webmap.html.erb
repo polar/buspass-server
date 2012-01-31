@@ -5,108 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Webmap for Busme</title>
-    <%= stylesheet_link_tag "OpenLayers-2.10/theme/default/style.css" %>
-    <%= stylesheet_link_tag "style.css" %>
-    <%= javascript_include_tag "OpenLayers-2.10/lib/Firebug/firebug.js" %>
-    <%= javascript_include_tag "OpenLayers-2.10/OpenLayers.js" %>
+    <script type='text/javascript'>
+debug = true;
+         console.log("Staring");
+   </script>
+    <%= javascript_include_tag :application %>
+    <script type='text/javascript'>
+         console.log("Staring2");
+   </script>
+    <%= stylesheet_link_tag "OpenLayers-2.11/theme/default/style.css" %>
+    <script type='text/javascript'>
+         console.log("Staring3");
+   </script>
+    <%= stylesheet_link_tag "application.css" %>
+    <script type='text/javascript'>
+         console.log("Staring4");
+   </script>
+    <%= javascript_include_tag "OpenLayers-2.11/lib/OpenLayers.js" %>
+    <script type='text/javascript'>
+         console.log("Staring5");
+   </script>
+    <%= javascript_include_tag "BusPassAPI.js" %>
+    <script type='text/javascript'>
+         console.log("Staring6");
+   </script>
+    <%= javascript_include_tag "Map.js" %>
+    <script type='text/javascript'>
+         console.log("Staring7");
+   </script>
+    <%= javascript_include_tag "Route.js" %>
+    <%= javascript_include_tag "RoutesView.js" %>
+    <script type='text/javascript'>
+         console.log("Staring8");
+   </script>
+    <%= javascript_include_tag "jquery.tools.min.js" %>
+    <%= javascript_include_tag "jquery.layout-latest.js" %>
+    <%= stylesheet_link_tag "http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css" %>
     <script type="text/javascript">
-        debug=true;
-        var map;
-        function init(){
-            map = new OpenLayers.Map('map');
-            map.projection = "EPSG:23030";
-            map.displayProjection = new OpenLayers.Projection("EPSG:4326");
-            var mapnik = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
-
-            map.addLayers([mapnik]);
-            map.addControl(new OpenLayers.Control.LayerSwitcher());
-            map.addControl(new OpenLayers.Control.MousePosition());
-            map.setCenter(new OpenLayers.LonLat(-76.146669, 43.050952).transform(
-              new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-              new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
-              ), 13 // Zoom level
-              );
-              var highlight = OpenLayers.Control.SelectFeature( {
-                  highlightOnly : true
-              });
-              map.addControl(highlight);
-              highlight.activate();
-        }
-
-        function addLayer(layer) {
-            map.addLayers([layer]);
-        }
-
-        function getLayer(routeid) {
-           var defaultStyle = new OpenLayers.Style(
-                {
-                    strokeColor: "blue",
-                    strokeWidth: 3,
-                    strokeOpacity: 0.5,
-                    cursor: "pointer"
-                });
-           var selectStyle =  new OpenLayers.Style(
-                {
-                    strokeColor: "red",
-                    strokeWidth: 3,
-                    strokeOpacity: 0.5,
-                    cursor: "pointer"
-                });
-           function clickAlert(event) {
-               alert("Clicked");
-           };
-           var styleMap = new OpenLayers.StyleMap({
-                         'default': defaultStyle,
-                         'select': selectStyle});
-           
-
-           var layer = new OpenLayers.Layer.Vector("Route", {
-                styleMap : styleMap,
-                strategies: [new OpenLayers.Strategy.Fixed()],
-                
-           
-                protocol: new OpenLayers.Protocol.HTTP({
-                  url: "http://localhost:3000/webmap/route/"+routeid+".json",
-                  format: new OpenLayers.Format.GeoJSON({
-                      ignoreExtraDims: true,
-                      internalProjection: new OpenLayers.Projection("EPSG:900913"),
-                      externalProjection: new OpenLayers.Projection("EPSG:4326")
-                  })
-                })
-           });
-            var report = function(e) {
-                OpenLayers.Console.log(e.type, e.feature.id);
-            };
-            
-            var highlightCtrl = new OpenLayers.Control.SelectFeature(layer, {
-                hover: true,
-                highlightOnly: true,
-                renderIntent: "temporary",
-                eventListeners: {
-                    beforefeaturehighlighted: report,
-                    featurehighlighted: report,
-                    featureunhighlighted: report
-                },
-            });
-
-            var selectCtrl = new OpenLayers.Control.SelectFeature(layer, {
-                 clickout: true,
-                 onSelect: clickAlert
-                 }
-            );
-
-            map.addControl(highlightCtrl);
-            map.addControl(selectCtrl);
-
-            highlightCtrl.activate();
-            selectCtrl.activate();
-           return layer;
-        }
+console.log("STARTING 333");
     </script>
     <%= yield :head %>
   </head>
-  <body onload="init()">
-   <div id="map" class="smallmap"></div>
+  <body>
    <%= yield %>
   </body>
 </html>

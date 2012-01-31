@@ -1,7 +1,13 @@
+var Route = Class.create();
+
 Route.prototype = {
+  init : function(apiMap) {
+    this._apiMap = apiMap;
+  },
+
   _nw_lon: null,
-  _nw_lat : null, 
-  _se_lon : null, 
+  _nw_lat : null,
+  _se_lon : null,
   _se_lat : null,
   _startOffset : null,
   _duration : null,
@@ -79,7 +85,7 @@ Route.prototype = {
   getZoomCenter : function() {
     return _zoomCenter;
   },
-  
+
   isNearRoute : function(where, buffer) {
     // TODO: fill in
   },
