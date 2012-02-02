@@ -2,12 +2,10 @@
  * This a HTML5 WebWorker.
  */
 self.importScripts("/assets/jquery.hive.pollen.js");
-self.importScripts("/assets/BusPassAPI.js");
+self.importScripts("/assets/WorkerBusPassAPI.js");
 
 self.loadJourneyIds = function(data) {
-    var busAPI = new BusPassAPI();
-    busAPI.apiMap = data.apiMap;
-    busAPI._loggedIn = true;
+    var busAPI = new BusPassAPI(data.apiMap);
     data.status = "Start";
     self.postMessage(data);
     busAPI.fetchRouteJourneyIds( function (journeyids) {
@@ -22,9 +20,7 @@ self.loadJourneyIds = function(data) {
 };
 
 self.fetchRoute = function(data) {
-    var busAPI = new BusPassAPI();
-    busAPI.apiMap = data.apiMap;
-    busAPI._loggedIn = true;
+    var busAPI = new BusPassAPI(data.apiMap);
     data.status = "Start";
     self.postMessage(data);
     busAPI.fetchRouteDefinitionData(data.journeyid, function(route) {

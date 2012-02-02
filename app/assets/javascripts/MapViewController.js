@@ -89,7 +89,7 @@ BusPass.MapViewController.prototype = {
         this._routes.push(route);
         var ctrl = this;
         protocol = new OpenLayers.Protocol.HTTP({
-            url: "/webmap/route/"+route.getId()+".json",
+            url: route.getGeoJSONUrl(),
             format: new OpenLayers.Format.GeoJSON({
                 ignoreExtraDims: true,
                 internalProjection: new OpenLayers.Projection("EPSG:900913"),

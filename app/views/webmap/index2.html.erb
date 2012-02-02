@@ -24,10 +24,12 @@ $(function() {
         // initialize scrollable with mousewheel support
         $("#routesView").scrollable({ vertical: true, mousewheel: true });
          api = new BusPassAPI("http://localhost:3000/");
-        routesView = new BusPass.ListViewController("#routesView .items");
+        routesView = new BusPass.ListViewController();
+        routesView.listView("#routesView .items");
         basket = new BusPass.JourneyBasket(api, new BusPass.JourneyStore());
         basket.onJourneyAddedListener =  {
             onJourneyAdded : function (basket, r) {
+                console.log("Route Added! " + r.getName() + " : " + r.getId());
                 routesView.addRoute(r);
             }
         };
@@ -40,7 +42,7 @@ $(function() {
 
         basket.onBasketUpdatedListener = {
             onBasketUpdated : function (basket) {
-                alert("Basket Updated");
+                console.log("Basket Updated");
             }
         };
 

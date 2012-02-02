@@ -1,6 +1,6 @@
-function Route(apiMap) {
-    this._apiMap = apiMap;
+Route = function(data) {
     this._selected = false;
+    $.extend(this,data);
 };
 
 Route.prototype = {
@@ -12,8 +12,13 @@ Route.prototype = {
     _duration : null,
     _startTime : null,
     _endTime : null,
-    _nameId : null,
 
+    _getGeoJSONUrl : null,
+    getGeoJSONUrl : function() {
+        return this._getGeoJSONUrl;
+    },
+
+    _nameId : null,
     getNameId : function() {
         return this._nameId;
     },
@@ -27,7 +32,6 @@ Route.prototype = {
     getName : function() {
         return this._name;
     },
-
 
     _code : null,
     getCode: function() {
@@ -71,6 +75,11 @@ Route.prototype = {
     _type : null,
     getType : function() {
         return this._type;
+    },
+
+    _version : null,
+    getVersion : function () {
+        return this._version;
     },
 
     isJourney : function() {

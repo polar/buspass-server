@@ -5,17 +5,17 @@ class WebmapController < ApplicationController
   end
 
   def api
-    text = "<API\n"
-    text += "majorVersion=" + "'1'" + "\n"
-    text += "minorVersion=" + "'1'" + "\n"
-    text += "getRoutePath=" + "'/webmap/route'" + "\n"
-    text += "getRouteJourneyIds=" + "'/webmap/route_journeys'" + "\n"
-    text += "getRouteDefinition=" + "'/webmap/routedef'" + "\n"
-    text += "getJourneyLocation=" + "'/webmap/curloc/'" + "\n"
-    text += "/>\n"
+      @api = {
+          :majorVersion => 1,
+          :minorVersion => 0,
+          "getRoutePath" => "/webmap/route",
+          "getRouteJourneyIds" => "/webmap/route_journeys",
+          "getRouteDefinition" => "/webmap/routedef",
+          "getJourneyLocation" => "/webmap/curloc"
+      }
 
     respond_to do |format|
-      format.xml { render :text => text }
+      format.json { render :json => @api }
     end
   end
 
@@ -100,6 +100,7 @@ class WebmapController < ApplicationController
    data[:_name]="#{route.display_name}"
    data[:_code]="#{route.code}"
    data[:_version]="#{route.version}"
+   data[:_geoJSONUrl]="/webmap/route/#{route.persistentid}.json"
    data[:_nw_lon]="#{box[0][0]}"
    data[:_nw_lat]="#{box[0][1]}"
    data[:_se_lon]="#{box[1][0]}"

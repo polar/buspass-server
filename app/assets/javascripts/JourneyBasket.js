@@ -177,8 +177,8 @@ BusPass.JourneyBasket.prototype = {
                 if (data.progress_index == data.end_progress_index) {
                     this.progressListener.onDone();
                 }
-                var route = new Route(this._busAPI);
-                $.extend(route, data.route);
+                var route = new Route(data.route);
+                this._journeyStore.storeJourney(route);
                 this.onJourneyAddedListener.onJourneyAdded(this, route);
                 if (data.progress_index == data.end_progress_index) {
                     this.onBasketUpdatedListener.onBasketUpdated(this);
@@ -266,22 +266,22 @@ BusPass.JourneyBasket.prototype = {
                     keepJourneys.push(r);
                 }
             }
-            addAll(newJourneys, keepJourneys);
-            addAll(newJourneys, addedJourneys);
-            journeys = newJourneys;
+        }
+        addAll(newJourneys, keepJourneys);
+        addAll(newJourneys, addedJourneys);
+        journeys = newJourneys;
 
-            for(var i = 0; i < removedJourneys.length; i++) {
-                var r = removedJourneys[i];
-                this.onJourneyRemovedListener.journeyRemoved(this,r);
-            }
-            for(var i = 0; i < addedJourneys.length; i++) {
-                var r = addedJourneys[i];
-                this.onJourneyAddedListener.journeyAdded(this,r);
-            }
-            for(var i = 0; i < journeyidsNeeded.length; i++) {
-                var r = journeyidsNeeded[i];
-                this._fetchRoute(r, i+1, journeyidsNeeded.length);
-            }
+        for(var i = 0; i < removedJourneys.length; i++) {
+            var r = removedJourneys[i];
+            this.onJourneyRemovedListener.onJourneyRemoved(this,r);
+        }
+        for(var i = 0; i < addedJourneys.length; i++) {
+            var r = addedJourneys[i];
+            this.onJourneyAddedListener.onJourneyAdded(this,r);
+        }
+        for(var i = 0; i < journeyidsNeeded.length; i++) {
+            var r = journeyidsNeeded[i];
+            this._fetchRoute(r, i+1, journeyidsNeeded.length);
         }
     },
 

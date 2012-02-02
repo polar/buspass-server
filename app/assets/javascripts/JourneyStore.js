@@ -5,11 +5,14 @@ BusPass.JourneyStore = function () {
 BusPass.JourneyStore.prototype = {
 
     storeJourney : function(route) {
-        this._journeys.put(route.getId(),route);
+        console.log("JourneyStore" + "storeJourney(" + route.getId() + ", version = "+route.getVersion()+ ", name = " + route.getName());
+        this._journeys.put(""+route.getId(),route);
+        var newRoute = this._journeys.get(route.getId());
+        console.log("JourneyStore" + "storeJourney.gets back = " + newRoute);
     },
 
     getJourney : function(id) {
-        route = this._journeys.get(id);
+        var route = this._journeys.get(""+id);
         if (route == null) {
             console.log("JourneyStore" + "getJourney("+id+") == null");
         } else {
