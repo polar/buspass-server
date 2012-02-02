@@ -2,6 +2,7 @@
 
 BusPass.MapViewController = function(options) {
     this._routes = [];
+    this._selectedRoutes = [];
     $.extend(this,options);
     if (this.scope == null) {
         this.scope = this;
@@ -102,18 +103,23 @@ BusPass.MapViewController.prototype = {
         protocol.read();
     },
 
+    _remove : function (a,x) {
+        b = [];
+        for(var i in a) {
+            if (a[i] != x) {
+                b.push(x);
+            }
+        }
+        return b;
+    },
     /**
      * Method: removeRoute
      * This method removes a route from the MapView
      */
     removeRoute : function(route) {
-        var rs = [];
-        for(r in this._routes) {
-            if (this._routes[r] != route) {
-                rs += this._routes[r];
-            };
-        }
-        this._routes = rs;
+        this._selectedRoutes = this._remove(this._selectedRoutes,route);
+        this._routes = this._remove(this._routes,route);
+        // Does this call unselect call backs?
         this._routeVectors.removeFeatures(route.__mapFeatures);
         this.removeMapFeatures(route);
     },
@@ -127,6 +133,7 @@ BusPass.MapViewController.prototype = {
             this.removeMapFeatures(routes[i]);
         }
         this._routes = [];
+        this._selectedRoutes = [];
     },
 
     /**
@@ -135,10 +142,13 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger a callback.
      */
     selectRouteNoTrigger : function(route) {
+        this._selectedRoutes.push(route);
         route.setSelected(true);
         route.__noSelectTrigger = true;
-        // This will generate callbacks.
+        // This will generate callbacks, maybe a couple per Route? Ugg.
+        console.log("map.selectRouteNoTrigger: selecting " + route.getName() + ":" + route.getId());
         this._selectFeatures(route.__mapFeatures);
+        delete route.__noSelectTrigger;
     },
 
     /**
@@ -147,10 +157,13 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger a callback.
      */
     unselectRouteNoTrigger : function(route) {
+        this._selectedRoutes = this._remove(this._selectedRoutes,route);
         route.setSelected(false);
         route.__noUnselectTrigger = true;
         // This will generate callbacks.
+        console.log("map.unselectRouteNoTrigger: unselecting " + route.getName() + ":" + route.getId());
         this._unselectFeatures(route.__mapFeatures);
+        delete route.__noUnselectTrigger;
     },
 
     /**
@@ -159,10 +172,18 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unselectAllRoutesNoTrigger : function() {
-        for(i in this._routes) {
+        console.log("map.unselectAllRoutes: unselecting");
+        var sroutes = this._selectedRoutes;
+        for(i in sroutes) {
             // This will generate callbacks.
-            this.unselectRouteNoTrigger(this._routes[i]);
+            console.log("map.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
+            route.setSelected(false);
+            route.__noUnselectTrigger = true;
+            // This will generate callbacks.
+            this._unselectFeatures(route.__mapFeatures);
+            delete route.__noUnselectTrigger;
         }
+        this._selectedRoutes = [];
     },
 
     /**
@@ -171,9 +192,14 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     highlightRouteNoTrigger : function(route) {
-        route.__nohighlightTrigger = true;
-        // This may generate callbacks.
-        this._highlightFeatures(route.__mapFeatures);
+        console.log("map.highlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
+        // Do not want to highlight a selected item.
+        if (!route.isSelected()) {
+            route.__nohighlightTrigger = true;
+            // This may generate callbacks.
+            this._highlightFeatures(route.__mapFeatures);
+            delete route.__nohighlightTrigger;
+        }
     },
 
     /**
@@ -182,9 +208,14 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unhighlightRouteNoTrigger : function(route) {
-        route.__nounhighlightTrigger = true;
-        // This may generate callbacks.
-        this._unhighlightFeatures(route.__mapFeatures);
+        console.log("map.unhighlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
+        // A selected item doesn't have a highlight, doing this kills the selection.
+        if (!route.isSelected()) {
+            route.__nounhighlightTrigger = true;
+            // This may generate callbacks.
+            this._unhighlightFeatures(route.__mapFeatures);
+            delete route.__nounhighlightTrigger;
+        }
     },
 
     /**
@@ -246,7 +277,7 @@ BusPass.MapViewController.prototype = {
     _selectFeatures : function(features) {
         var ctrl = this;
         // This call triggers callbacks.
-        self._selectCtrl.unselectAll();
+        ctrl._selectCtrl.unselectAll();
         $.each(features, function(i,a) {
                 ctrl._selectCtrl.select(a);
             });
@@ -299,7 +330,7 @@ BusPass.MapViewController.prototype = {
                               })
         ]);
 
-        ctrl.highlightStyle = $.extend({graphicZIndex : 999}, ctrl.highlightStyle);
+        //ctrl.highlightStyle = $.extend({graphicZIndex : 999}, ctrl.highlightStyle);
 
         var styleMap = new OpenLayers.StyleMap({
             'default': ctrl.defaultStyle,
@@ -324,19 +355,25 @@ BusPass.MapViewController.prototype = {
             report(ev);
             var feature = ev.feature;
             var route = feature.__route;
+            console.log("map.onHightlight: route " + route.getName() + " trigger " + !route.__nohighlightTrigger);
             if (route.__nohighlightTrigger) {
-                delete route.__nohighlightTrigger;
             } else {
-                ctrl.onRouteHighlighted.call(ctrl.scope, route);
+                // When the Feature is a selected feature, onUnhighlight doesn't get
+                // called on a mouseout. So, we don't propagate the call.
+                if (!route.isSelected()) {
+                    ctrl.onRouteHighlighted.call(ctrl.scope, route);
+                }
             }
         };
 
+        // When the Feature is a selected feature, onUnhighlight doesn't get
+        // called on a mouseout. So, we don't propagate the call on onHighlight.
         function onUnhighlight(ev) {
             report(ev);
             var feature = ev.feature;
             var route = feature.__route;
+            console.log("map.onUnhightlight: route " + route.getName() + " trigger " + !route.__nounhighlightTrigger);
             if (route.__nounhighlightTrigger) {
-                delete route.__nounhighlightTrigger;
             } else {
                 ctrl.onRouteUnhighlighted.call(ctrl.scope, route);
             }
@@ -345,7 +382,6 @@ BusPass.MapViewController.prototype = {
         function onSelectRoute(feature) {
             // feature has been selected, Just tell the RouteView of the selection.
             if (feature.__route.__noSelectTrigger) {
-                delete feature.__route.__noSelectTrigger;
             } else {
                 ctrl.onRouteSelected.call(ctrl.scope, feature.__route);
             }
@@ -357,7 +393,6 @@ BusPass.MapViewController.prototype = {
         function onUnselectRoute(feature) {
             // feature has been selected, Just tell the RouteView of the selection.
             if (feature.__route.__noUnselectTrigger) {
-                delete feature.__route.__noUnselectTrigger;
             } else {
                 ctrl.onRouteUnselected.call(ctrl.scope, feature.__route);
             }

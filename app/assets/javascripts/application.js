@@ -2,3 +2,4 @@
 // All this logic will automatically be available in application.js.
 //= require jquery
 //= require jquery_ujs
+//= require jshashtable-2.1

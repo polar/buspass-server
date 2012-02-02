@@ -1,5 +1,7 @@
 BusPass.ListViewController = function(options) {
     this._routes = [];
+    this._selectedRoutes = [];
+
     $.extend(this,options);
     if (this.scope == null) {
         this.scope = this;
@@ -50,7 +52,7 @@ BusPass.ListViewController.prototype = {
      * Method: clearRoutes
      * This method removes all routes from the ListView
      */
-    clearRoutes : function() {
+    clearRoutesList : function() {
         this._routes = [];
         this._redisplayRoutes();
     },
@@ -61,8 +63,21 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger a callback.
      */
     selectRouteNoTrigger : function(route) {
+        console.log("list.selectRoutesNoTrigger: selecting " + route.getName() + ":" + route.getId());
+        this.unselectAllRoutesNoTrigger();
+        this._selectedRoutes.push(route);
         route.setSelected(true);
         route.__element.className = "item row route-selected";
+    },
+
+    _remove : function (a,x) {
+        b = [];
+        for(var i in a) {
+            if (a[i] != x) {
+                b.push(x);
+            }
+        }
+        return b;
     },
 
     /**
@@ -71,6 +86,8 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger a callback.
      */
     unselectRouteNoTrigger : function(route) {
+        console.log("list.unselectRoutesNoTrigger: unselecting " + route.getName() + ":" + route.getId());
+        this._selectedRoutes = this._remove(this._selectedRoutes,route);
         route.setSelected(false);
         route.__element.className = "item row";
     },
@@ -81,9 +98,14 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unselectAllRoutesNoTrigger : function() {
-        for(i in this._routes) {
-            this.unselectRouteNoTrigger(this._routes[i]);
+        console.log("list.unselectAllRoutes: unselecting ");
+        var sroutes = this._selectedRoutes;
+        for(i in sroutes) {
+            console.log("list.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
+            sroutes[i].setSelected(false);
+            sroutes[i].__element.className = "item row";
         }
+        this._selectedRoutes = [];
     },
 
     /**
@@ -92,6 +114,7 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     highlightRouteNoTrigger : function(route) {
+        console.log("list.highlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
         if (route.isSelected()) {
             route.__element.className = "item row route-selected route-highlighted";
         } else {
@@ -105,6 +128,7 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unhighlightRouteNoTrigger : function(route) {
+        console.log("list.unhighlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
         if (route.isSelected()) {
             route.__element.className = "item row route-selected";
         } else {
@@ -257,6 +281,7 @@ BusPass.ListViewController.prototype = {
     },
 
     _onRouteClick : function(ctrl, route) {
+        console.log("onRouteClick " + route.getName() + " - " + route.isSelected());
         if (route.isSelected()) {
             ctrl.unselectRouteNoTrigger(route);
             ctrl._triggerCallback(ctrl.onRouteUnselected, route);
@@ -267,11 +292,13 @@ BusPass.ListViewController.prototype = {
     },
 
     _onRouteMouseOver : function(ctrl,route) {
+        console.log("_onRouteMouseOver " + route.getName() + " selected " + route.isSelected());
         ctrl.highlightRouteNoTrigger(route);
         ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
     },
 
     _onRouteMouseOut : function(ctrl,route) {
+        console.log("_onRouteMouseOut " + route.getName() + " selected " + route.isSelected());
         ctrl.unhighlightRouteNoTrigger(route);
         ctrl._triggerCallback(ctrl.onRouteUnhighlighted, route);
     },

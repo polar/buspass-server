@@ -8,10 +8,10 @@ class WebmapController < ApplicationController
     text = "<API\n"
     text += "majorVersion=" + "'1'" + "\n"
     text += "minorVersion=" + "'1'" + "\n"
-    text += "getRoutePath=" + "'webmap/route'" + "\n"
-    text += "getRouteJourneyIds=" + "'webmap/route_journeys'" + "\n"
-    text += "getRouteDefinition=" + "'webmap/routedef'" + "\n"
-    text += "getJourneyLocation=" + "'webmap/curloc/'" + "\n"
+    text += "getRoutePath=" + "'/webmap/route'" + "\n"
+    text += "getRouteJourneyIds=" + "'/webmap/route_journeys'" + "\n"
+    text += "getRouteDefinition=" + "'/webmap/routedef'" + "\n"
+    text += "getJourneyLocation=" + "'/webmap/curloc/'" + "\n"
     text += "/>\n"
 
     respond_to do |format|

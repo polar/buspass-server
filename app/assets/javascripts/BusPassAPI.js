@@ -1,7 +1,6 @@
 /**
  * BusPassAPI.js
  */
-//= require jquery.json-2.3
 BusPassAPI = function() {};
 
 BusPassAPI.prototype = {
@@ -62,7 +61,10 @@ BusPassAPI.prototype = {
       api = this;
       cont1 = function(result, status, third) {
         api._loadAPIMap(result);
-        cb(api);
+        api._loggedIn = true;
+        if (cb != null) {
+            cb(api);
+        }
       }
       $.get(this.hostUrl + "webmap/api.xml?majorVersion=1&minorVersion=0",cont1, "xml");
     },
@@ -74,19 +76,13 @@ BusPassAPI.prototype = {
     fetchRouteJourneyIds : function(successC, failureC) {
         url = this.apiMap["getRouteJourneyIds"];
         var api = this;
-        function resultC(result, status, response) {
-          if (status == "success") {
-            if (successC != null) {
+        function resultC(result) {
+             if (successC != null) {
               successC(result);
             }
-          } else {
-            if (failureC != null) {
-              failureC(response);
-            }
-          }
         }
         var url = this.apiMap["getRouteJourneyIds"] +".json";
-        $.get(url, resultC, "json");
+        $.ajax.get( { url: url, success: resultC, dataType: "json" });
     },
 
     getRouteDefinition : function() {
@@ -98,21 +94,29 @@ BusPassAPI.prototype = {
     },
 
     fetchRouteDefinition : function( nameid, successC, failureC ) {
+        var api = this;
+        api.fetchRouteDefinitionData( nameid, function(data, status) {
+            if (status == "success") {
+                var route = new Route(api);
+                $.extend(route, data);
+                if (successC != null) {
+                    successC(route);
+                }
+            } else {
+                if (failureC != null) {
+                    failureC(response);
+                }
+            }});
+    },
+
+    fetchRouteDefinitionData : function( nameid, successC, failureC ) {
       var api = this;
 
       // The result Continuation
-      function resultC(result, status, response) {
-        if (status == "success") {
-          var route = new Route(api);
-          $.extend(route, result);
+      function resultC(result) {
           if (successC != null) {
-            successC(route);
+              successC(result);
           }
-        } else {
-          if (failureC != null) {
-            failureC(response);
-          }
-        }
       }
 
       var url = this.apiMap["getRouteDefinition"] + "/" + nameid.id + ".json";
@@ -120,6 +124,6 @@ BusPassAPI.prototype = {
       if (nameid.type != null) {
         args += "&type=" + nameid.type;
       }
-      $.get(url+args, resultC, "json");
+      $.ajax.get( { url: url+args, success: resultC, dataType: "json"});
     }
 };

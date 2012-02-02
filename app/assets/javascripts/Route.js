@@ -100,11 +100,6 @@ Route.prototype = {
     },
 
     // Display Stuff
-
-    getDisplayName : function () {
-        return this.getName();
-    },
-
     /**
      * Method: setSelected
      * This method sets the isSelected boolean.
@@ -129,5 +124,58 @@ Route.prototype = {
     isSelected : function() {
         return this._selected;
     },
+
+    // JourneyDisplay Stuff
+
+    getDisplayName : function () {
+        return this.getName();
+    },
+
+    setNameVisible : function (state) {
+        this._nameVisible = state;
+    },
+
+    isNameVisible : function () {
+        return this._nameVisible;
+    },
+
+    setNameHighlighted : function (state) {
+        this._nameHighlighted = state;
+    },
+
+    isNameHighlighted : function () {
+        return this._nameHighlighted;
+    },
+
+    setPathVisible : function (state) {
+        this._pathVisible = state;
+    },
+
+    isPathVisible : function () {
+        return this._pathVisible;
+    },
+
+    setHasActiveJourneys : function (state) {
+        this._hasActiveJourneys = state;
+    },
+
+    isHasActiveJourneys : function () {
+        return this._hasActiveJourneys;
+    },
+
+    // Compatability with JourneyDisplay in Java
+    getRoute : function () {
+        return this;
+    },
+
+    onJourneyDisplayLocationUpdateListener : {
+        onJourneyDisplayLocationUpdate : function(journeyDisplay, locations) {}
+    },
+
+    // JourneyDisplay is a location update listener.
+    onLocationUpdate : function(route, locations) {
+        this.onJourneyDisplayLocationUpdateListener.onJourneyDisplayLocationUpdate(this, locations);
+    },
+
 
 };
