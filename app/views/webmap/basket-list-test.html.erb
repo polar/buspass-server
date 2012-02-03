@@ -28,11 +28,13 @@
         function onPause() {
             basket.onPause();
             $("#onPause")[0].disabled=true;
+            $("#onResume")[0].disabled=false;
             $("#onStop")[0].disabled=false;
         };
         function onStop() {
             basket.onStop();
             $("#onStop")[0].disabled=true;
+            $("#onResume")[0].disabled=true;
             $("#onRestart")[0].disabled=false;
             $("#onDestroy")[0].disabled=false;
         };
@@ -57,8 +59,22 @@ $(function() {
         // initialize scrollable with mousewheel support
         $("#routesView").scrollable({ vertical: true, mousewheel: true });
         api = new BusPassAPI("http://localhost:3000/");
-        listView = new BusPass.ListViewController();
-        listView.listView("#routesView .items");
+        listView = new BusPass.ListViewController( {
+            scope : this,
+            onRouteSelected : function( route ) {
+                $("#message").html("<span style='color:red'>Route Selected: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteUnselected : function( route ) {
+                $("#message").html("<span style='color:blue'>Route Unselected: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteHighlighted : function( route ) {
+                $("#message").html("<span style='color:green'>Route Highlighted: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteUnhighlighted : function( route ) {
+                $("#message").html("<span style='color:black'>Route Unhighlighted: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+        });
+        listView.listView($("#routesView .items")[0]);
         basket = new BusPass.JourneyBasket()
         basket.busAPI = api;
         basket.journeyStore = new BusPass.JourneyStore();
@@ -90,18 +106,22 @@ $(function() {
         basket.progressListener = {
             onSyncStart : function () {
                 console.log("Basket: SyncStart");
+                $("#message").html("Starting Update");
             },
             onSyncEnd : function (nRoutes) {
                 console.log("Basket: SyncEnd");
+                $("#message").html("Sync Ended");
             },
-            onRouteStart : function (iRoute) {
+            onRouteStart : function (iRoute,nRoutes) {
                 console.log("Basket: StartRoute " + iRoute);
             },
-            onRouteEnd : function (iRoute) {
+            onRouteEnd : function (iRoute,nRoutes) {
                 console.log("Basket: EndRoute " + iRoute);
+                $("#message").html("Progress " +(100.0*iRoute/nRoutes) + "%");
             },
             onDone : function () {
                 console.log("Basket: Done.");
+                $("#message").html("Update Done");
             },
         };
 
@@ -131,7 +151,9 @@ $(function() {
         <DIV class="span10">
             <div id="map" class="smallmap">
             </div>
-            <hr>
+            <hr />
+            <div id="message">A Message</div>
+            <hr />
             <button id="Login" class="btn" onclick="login()">Login</button>
             <button id="onCreate" class="btn" onclick="onCreate()">onCreate</button>
             <button id="onStart" class="btn" onclick="onStart()">onStart</button>

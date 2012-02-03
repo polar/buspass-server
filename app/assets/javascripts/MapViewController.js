@@ -121,7 +121,7 @@ BusPass.MapViewController.prototype = {
         this._routes = this._remove(this._routes,route);
         // Does this call unselect call backs?
         this._routeVectors.removeFeatures(route.__mapFeatures);
-        this.removeMapFeatures(route);
+        this._removeMapFeatures(route);
     },
 
     /**
@@ -130,7 +130,7 @@ BusPass.MapViewController.prototype = {
      */
     clearRoutes : function() {
         for(r in this._routes) {
-            this.removeMapFeatures(routes[i]);
+            this._removeMapFeatures(routes[i]);
         }
         this._routes = [];
         this._selectedRoutes = [];
@@ -231,7 +231,7 @@ BusPass.MapViewController.prototype = {
     },
 
     mapView : function(jquery) {
-        this._map = new OpenLayers.Map('map');
+        this._map = new OpenLayers.Map($(jquery)[0].id);
         this._map.projection = "EPSG:23030";
         this._map.displayProjection = new OpenLayers.Projection("EPSG:4326");
         var mapnik = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
@@ -383,6 +383,7 @@ BusPass.MapViewController.prototype = {
             // feature has been selected, Just tell the RouteView of the selection.
             if (feature.__route.__noSelectTrigger) {
             } else {
+                feature.__route.setSelected(true);
                 ctrl.onRouteSelected.call(ctrl.scope, feature.__route);
             }
             ctrl._routeVectors.redraw();
@@ -394,6 +395,7 @@ BusPass.MapViewController.prototype = {
             // feature has been selected, Just tell the RouteView of the selection.
             if (feature.__route.__noUnselectTrigger) {
             } else {
+                feature.__route.setSelected(false);
                 ctrl.onRouteUnselected.call(ctrl.scope, feature.__route);
             }
         };

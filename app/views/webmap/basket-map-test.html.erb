@@ -2,7 +2,7 @@
     <script type="text/javascript">
         console.log("STARTING TEST SETUP");
         var basket;
-        var listView;
+        var mapView;
         function login() {
             api.login(function() {});
             $("#Login")[0].disabled=true;
@@ -28,11 +28,13 @@
         function onPause() {
             basket.onPause();
             $("#onPause")[0].disabled=true;
+            $("#onResume")[0].disabled=false;
             $("#onStop")[0].disabled=false;
         };
         function onStop() {
             basket.onStop();
             $("#onStop")[0].disabled=true;
+            $("#onResume")[0].disabled=true;
             $("#onRestart")[0].disabled=false;
             $("#onDestroy")[0].disabled=false;
         };
@@ -57,21 +59,35 @@ $(function() {
         // initialize scrollable with mousewheel support
         $("#routesView").scrollable({ vertical: true, mousewheel: true });
         api = new BusPassAPI("http://localhost:3000/");
-        listView = new BusPass.ListViewController();
-        listView.listView("#routesView .items");
+        mapView = new BusPass.MapViewController( {
+            scope : this,
+            onRouteSelected : function( route ) {
+                $("#message").html("<span style='color:red'>Route Selected: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteUnselected : function( route ) {
+                $("#message").html("<span style='color:blue'>Route Unselected: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteHighlighted : function( route ) {
+                $("#message").html("<span style='color:green'>Route Highlighted: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+            onRouteUnhighlighted : function( route ) {
+                $("#message").html("<span style='color:black'>Route Unhighlighted: " + route.getCode() + " " +route.getName() + "</span>");
+            },
+        });
+        mapView.mapView("#map");
         basket = new BusPass.JourneyBasket()
         basket.busAPI = api;
         basket.journeyStore = new BusPass.JourneyStore();
         basket.onJourneyAddedListener =  {
             onJourneyAdded : function (basket, r) {
                 console.log("Route Added! " + r.getName() + " : " + r.getId());
-                listView.addRoute(r);
+                mapView.addRoute(r);
             }
         };
 
         basket.onJourneyRemovedListener = {
             onJourneyRemoved : function (basket, r) {
-                listView.removeRoute(r);
+                mapView.removeRoute(r);
             }
         };
 
@@ -131,7 +147,9 @@ $(function() {
         <DIV class="span10">
             <div id="map" class="smallmap">
             </div>
-            <hr>
+            <hr />
+            <div id="message">A message</div>
+            <hr />
             <button id="Login" class="btn" onclick="login()">Login</button>
             <button id="onCreate" class="btn" onclick="onCreate()">onCreate</button>
             <button id="onStart" class="btn" onclick="onStart()">onStart</button>

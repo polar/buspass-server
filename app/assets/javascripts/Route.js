@@ -13,9 +13,9 @@ Route.prototype = {
     _startTime : null,
     _endTime : null,
 
-    _getGeoJSONUrl : null,
+    _geoJSONUrl : null,
     getGeoJSONUrl : function() {
-        return this._getGeoJSONUrl;
+        return this._geoJSONUrl;
     },
 
     _nameId : null,

@@ -73,19 +73,17 @@ BusPass.JourneyBasketController.prototype = {
         this._journeyBasket.onJourneyRemovedListener = this.onJourneyRemovedListener;
         this._journeyBasket.onJourneyBasketUpdatedListener = this.onJourneyBasketUpdatedListener;
         this._journeyBasket.onIOErrorListener = this.onIOErrorListener;
-        this._journeyBasket.onCreate();
     },
 
     onStart : function() {
         console.log("JourneyBasketController: onStart");
         this._state = "START";
-        this._journeyBasket.onStart();
+        this._journeyBasket.sync();
     },
 
     onResume : function () {
         console.log("JourneyBasketController: onResume");
         this._state = "RESUME";
-        this._journeyBasket.onResume();
         this._updateInProgress = true;
         this._please_stop = false;
         for( var i = 0; i < this._journeyDisplays.length; i++) {

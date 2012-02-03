@@ -19,8 +19,8 @@ BusPass.ListViewController.prototype = {
 
     onRouteUnhighlighted : function () {},
 
-    listView : function(jquery) {
-        this._jquery = jquery;
+    listView : function(element) {
+        this._element = element;
     },
 
     /**
@@ -29,7 +29,7 @@ BusPass.ListViewController.prototype = {
      */
     addRoute : function(route) {
         this._routes.push(route);
-        $(this._jquery).append(this._constructRouteElement(route));
+        $(this._element).append(this._constructRouteElement(route));
         this._sortRouteElements();
     },
 
@@ -39,13 +39,14 @@ BusPass.ListViewController.prototype = {
      */
     removeRoute : function(route) {
         var rs = [];
-        for(r in this._routes) {
-            if (this._routes[r] != route) {
-                rs += this._routes[r];
+        for(var i = 0; i < this._routes.length; i++) {
+            if (this._routes[i] != route) {
+                rs.push(this._routes[i]);
             };
         }
         this._routes = rs;
-        route.__element.delete();
+        route.__element.parentNode.removeChild(route.__element);
+        route.__element = null;
     },
 
     /**
@@ -267,13 +268,13 @@ BusPass.ListViewController.prototype = {
 
     _sortRouteElements : function() {
         var ctrl = this;
-        var children = $(ctrl._jquery).children("div");
+        var children = $(ctrl._element).children("div");
         // TODO: We can just insert at the right place.
         children.detach().sort(
             function(a,b) {
                 return ctrl._compareRouteElements(a,b);
             });
-        $(ctrl._jquery).append(children);
+        $(ctrl._element).append(children);
     },
 
     _triggerCallback : function(cb, route) {

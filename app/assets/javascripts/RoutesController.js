@@ -1,5 +1,6 @@
-BusPass.RoutesController = function(listJQ,mapJQ) {
+BusPass.RoutesController = function(options) {
     this._routes = [];
+    $.extend(this,options);
 
     this._mapViewC = new BusPass.MapViewController({
         scope : this,
@@ -15,13 +16,33 @@ BusPass.RoutesController = function(listJQ,mapJQ) {
         onRouteHighlighted : this._onListRouteHighlight,
         onRouteUnhighlighted : this._onListRouteUnhighlight
     });
-
-    // The views will be in the DOM.
-    this._mapViewC.mapView(mapJQ);
-    this._listViewC.listView(listJQ);
 };
 
 BusPass.RoutesController.prototype = {
+    /**
+     * Attribute: scope
+     * This attribute is the context for the onRouteSelect,
+     * onRouteUnselect, onRouteHighlight, and onRouteUnhighlight
+     * callbacks.
+     */
+    scope : null,
+
+    onRouteSelected : function () {},
+
+    onRouteUnselected : function () {},
+
+    onRouteHighlighted : function () {},
+
+    onRouteUnhighlighted : function () {},
+
+    mapView : function (jq) {
+        this._mapViewC.mapView(jq);
+    },
+
+    listView : function (jq) {
+        this._listViewC.listView(jq);
+    },
+
     addRoute : function(route) {
         this._routes.push(route);
         this._listViewC.addRoute(route);
@@ -32,7 +53,7 @@ BusPass.RoutesController.prototype = {
         var rs = [];
         for(r in this._routes) {
         if (this._routes[r] != route) {
-            rs += this._routes[r];
+            rs.push(this._routes[r]);
         };
         }
         this._listViewC.removeRoute(route);
@@ -63,36 +84,44 @@ BusPass.RoutesController.prototype = {
 
     _onMapRouteSelect : function(route) {
         this._listViewC.selectRouteNoTrigger(route);
+        this.onRouteSelected(route);
     },
 
     _onListRouteSelect : function(route) {
         this._mapViewC.selectRouteNoTrigger(route);
+        this.onRouteSelected(route);
     },
 
     _onMapRouteUnselect : function(route) {
         this._listViewC.unselectRouteNoTrigger(route);
+        this.onRouteUnselected(route);
     },
 
     _onListRouteUnselect : function(route) {
         this._mapViewC.unselectRouteNoTrigger(route);
+        this.onRouteUnselected(route);
     },
 
     _onMapRouteHighlight : function(route) {
         this._listViewC.highlightRouteNoTrigger(route);
+        this.onRouteHighlighted(route);
     },
 
     _onListRouteHighlight : function(route) {
         this._mapViewC.highlightRouteNoTrigger(route);
+        this.onRouteHighlighted(route);
     },
 
     _onMapRouteunhighlight : function(route) {
         this._listViewC.unhighlightRouteNoTrigger(route);
+        this.onRouteUnhighlighted(route);
     },
 
     _onListRouteUnhighlight : function(route) {
         this._mapViewC.unhighlightRouteNoTrigger(route);
+        this.onRouteUnhighlighted(route);
     },
-
+/**
     VisualState : function() {
     },
 
@@ -324,5 +353,5 @@ BusPass.RoutesController.prototype = {
             return true;
         }
 
-
+    */
 };
