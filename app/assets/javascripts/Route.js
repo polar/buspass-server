@@ -1,5 +1,7 @@
 Route = function(data) {
     this._selected = false;
+    this._pathVisible = true;
+    this._nameVisible = true;
     $.extend(this,data);
 };
 

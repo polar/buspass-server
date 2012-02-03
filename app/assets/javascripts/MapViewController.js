@@ -252,6 +252,16 @@ BusPass.MapViewController.prototype = {
     },
 
     /**
+     * Method: redraw
+     * This method triggers a redraw of the vector layer. It returns
+     * a boolean if the layer was redrawn, which is an OpenLayers return
+     * for Layer.redraw().
+     */
+    redraw : function () {
+        return this._routeVectors.redraw();
+    },
+
+    /**
      * Method: setMapFeatures
      * This function sets the features on the Route and associates
      * the route with each feature.
@@ -310,6 +320,18 @@ BusPass.MapViewController.prototype = {
 
     _constructVectorLayer : function() {
         var ctrl = this;
+        var pathVisible = new OpenLayers.Rule({
+            context : function(feature) { return feature; },
+            filter : new OpenLayers.Filter({
+                evaluate: function(feature) {
+                    console.log("isPathVisible: " + ctrl._routeVectors.selectedFeatures.length+" - " + feature.__route.isPathVisible());
+                    return !feature.__route.isPathVisible();
+                }
+            }),
+            symbolizer: {
+                display: "none"
+            }
+        });
         var showOneOrAllRule = new OpenLayers.Rule({
             context : function(feature) { return feature; },
             filter : new OpenLayers.Filter({
@@ -324,7 +346,7 @@ BusPass.MapViewController.prototype = {
             }
         });
 
-        ctrl.defaultStyle.addRules([showOneOrAllRule,
+        ctrl.defaultStyle.addRules([pathVisible,showOneOrAllRule,
                               new OpenLayers.Rule({
                                   elseFilter: true
                               })

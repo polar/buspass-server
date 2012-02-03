@@ -51,6 +51,13 @@
             $("#onRestart")[0].disabled=true;
         };
 
+        function pathVisible(visibility) {
+             var routes = basket.getJourneys();
+             for(var i = 0; i < routes.length; i++ ) {
+                 routes[i].setPathVisible(visibility);
+             }
+             mapView.redraw();
+        }
     </script>
 <script>
 // execute your scripts when DOM is ready. this is a good habit
@@ -129,6 +136,8 @@ $(function() {
         $("#onStop")[0].disabled=true;
         $("#onRestart")[0].disabled=true;
         $("#onDestroy")[0].disabled=true;
+        $("#visibile")[0].disabled=false;
+        $("#invisibile")[0].disabled=false;
 
 });
 </script>
@@ -158,6 +167,8 @@ $(function() {
             <button id="onStop"  class="btn" onclick="onStop()">onStop</button>
             <button id="onRestart" class="btn" onclick="onRestart()">onRestart</button>
             <button id="onDestroy" class="btn" onclick="onDestroy()">onDestroy</button>
+            <button id="visibile" class="btn" onclick="pathVisible(true)">Make Visible</button>
+            <button id="invisibile" class="btn" onclick="pathVisible(false)">Make Invisible</button>
         </DIV>
         <DIV class="span6"/>
         <div class="row">

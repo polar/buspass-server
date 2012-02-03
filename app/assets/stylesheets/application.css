@@ -35,3 +35,6 @@
 .item .route-code {
     text-align: right;
 }
+.item.route-invisible {
+    display: none;
+}

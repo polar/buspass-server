@@ -121,6 +121,10 @@ BusPass.JourneyBasket.prototype = {
         onDone : function () {},
     },
 
+    getJourneys : function () {
+        return this._journeys;
+    },
+
     /**
      * Method: sync
      * This method starts the sync process of the basket.

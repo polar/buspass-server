@@ -72,13 +72,39 @@ BusPass.ListViewController.prototype = {
     },
 
     _remove : function (a,x) {
-        b = [];
-        for(var i in a) {
+        var b = [];
+        for(var i = 0; i < a.length; i++) {
             if (a[i] != x) {
-                b.push(x);
+                b.push(a[i]);
             }
         }
         return b;
+    },
+
+    _addClass : function(className, clazz) {
+        var classes = className.split(' ');
+        var add = true;
+        if (classes.indexOf(clazz) == -1) {
+            classes.push(clazz);
+        }
+        return classes.join(' ');
+    },
+
+    _removeClass : function(className, clazz) {
+        var classes = this._remove(className.split(' '), clazz);
+        var name = classes.join(' ');
+        return name;
+    },
+
+    redraw : function () {
+        for (var i=0; i < this._routes.length; i++) {
+           var route = this._routes[i];
+           if (route.isNameVisible()) {
+               route.__element.className = this._removeClass(route.__element.className, "route-invisible");
+           } else {
+               route.__element.className = this._addClass(route.__element.className, "route-invisible");
+           }
+        }
     },
 
     /**
@@ -90,7 +116,7 @@ BusPass.ListViewController.prototype = {
         console.log("list.unselectRoutesNoTrigger: unselecting " + route.getName() + ":" + route.getId());
         this._selectedRoutes = this._remove(this._selectedRoutes,route);
         route.setSelected(false);
-        route.__element.className = "item row";
+        route.__element.className = this._removeClass(route.__element.className, "route-selected");
     },
 
     /**
@@ -104,7 +130,7 @@ BusPass.ListViewController.prototype = {
         for(i in sroutes) {
             console.log("list.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
             sroutes[i].setSelected(false);
-            sroutes[i].__element.className = "item row";
+            route.__element.className = this._removeClass(route.__element.className, "route-selected");
         }
         this._selectedRoutes = [];
     },
@@ -116,11 +142,7 @@ BusPass.ListViewController.prototype = {
      */
     highlightRouteNoTrigger : function(route) {
         console.log("list.highlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
-        if (route.isSelected()) {
-            route.__element.className = "item row route-selected route-highlighted";
-        } else {
-            route.__element.className = "item row route-highlighted";
-        }
+        route.__element.className = this._addClass(route.__element.className, "route-highlighted");
     },
 
     /**
@@ -130,11 +152,7 @@ BusPass.ListViewController.prototype = {
      */
     unhighlightRouteNoTrigger : function(route) {
         console.log("list.unhighlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
-        if (route.isSelected()) {
-            route.__element.className = "item row route-selected";
-        } else {
-            route.__element.className = "item row";
-        }
+        route.__element.className = this._removeClass(route.__element.className, "route-highlighted");
     },
 
     /**
@@ -229,8 +247,9 @@ BusPass.ListViewController.prototype = {
      */
     _constructRouteElement : function(route) {
         var ctrl = this;
+        var visibility = route.isNameVisible() ? "" : " route-invisible";
         var div =
-            "<div class='item row' data-role='" + route.getType() + "' data-routeid='"+ route.getId() + "'>" +
+            "<div class='item row" + visibility + "' data-role='" + route.getType() + "' data-routeid='"+ route.getId() + "'>" +
                 "<div class='span1 route-code' data-role='route-code'>" +
                     route.getCode() +
                 "</div>"+
