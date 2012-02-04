@@ -88,6 +88,10 @@ Route.prototype = {
         return this._type == "journey";
     },
 
+    isActiveJourney : function() {
+        return this._type == "journey";
+    },
+
     isRouteDefinition : function() {
         return this._type == "route";
     },

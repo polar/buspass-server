@@ -19,6 +19,36 @@ BusPass.ListViewController.prototype = {
 
     onRouteUnhighlighted : function () {},
 
+    /**
+     * Method: onRouteClicked
+     * This method is called when the list item is clicked on.
+     * Its default operation is to trigger the onRouteSelected callback
+     * if the route was not selected.
+     */
+    onRouteClicked : function(ctrl, route) {
+        console.log("onRouteClicked " + route.getName() + " - " + route.isSelected());
+        // if its in our selected routes.
+        if (this._selectedRoutes.indexOf(route) != -1) {
+            ctrl.unselectRouteNoTrigger(route);
+            ctrl._triggerCallback(ctrl.onRouteUnselected, route);
+        } else {
+            ctrl.selectRouteNoTrigger(route);
+            ctrl._triggerCallback(ctrl.onRouteSelected, route);
+        }
+    },
+
+    onRouteMouseOver : function(ctrl,route) {
+        console.log("_onRouteMouseOver " + route.getName() + " selected " + route.isSelected());
+        ctrl.highlightRouteNoTrigger(route);
+        ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
+    },
+
+    onRouteMouseOut : function(ctrl,route) {
+        console.log("_onRouteMouseOut " + route.getName() + " selected " + route.isSelected());
+        ctrl.unhighlightRouteNoTrigger(route);
+        ctrl._triggerCallback(ctrl.onRouteUnhighlighted, route);
+    },
+
     listView : function(element) {
         this._element = element;
     },
@@ -127,10 +157,10 @@ BusPass.ListViewController.prototype = {
     unselectAllRoutesNoTrigger : function() {
         console.log("list.unselectAllRoutes: unselecting ");
         var sroutes = this._selectedRoutes;
-        for(i in sroutes) {
+        for(var i = 0; i < sroutes.length; i++) {
             console.log("list.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
             sroutes[i].setSelected(false);
-            route.__element.className = this._removeClass(route.__element.className, "route-selected");
+            sroutes[i].__element.className = this._removeClass(sroutes[i].__element.className, "route-selected");
         }
         this._selectedRoutes = [];
     },
@@ -161,7 +191,7 @@ BusPass.ListViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unhighlightAllRoutesNoTrigger : function() {
-        for(i in this._routes) {
+        for(var i = 0; i < this._routes.length; i++) {
             this.unhighlightRouteNoTrigger(this._routes[i]);
         }
     },
@@ -219,18 +249,18 @@ BusPass.ListViewController.prototype = {
         if (r1.isJourney() && r2.isJourney() ||
             !r1.isJourney() && !r2.isJourney()) {
             cmp = this._compareCodes(r1.getCode(),r2.getCode());
-        if (cmp == 0) {
-            return this._compare(r1.getDisplayName(),r2.getDisplayName());
-        } else {
-            return cmp;
-        }
+            if (cmp == 0) {
+                return this._compare(r1.getDisplayName(),r2.getDisplayName());
             } else {
-                if (r1.isJourney()) {
-                    return -1;
-                } else {
-                    return 1;
-                }
+                return cmp;
             }
+        } else {
+            if (r1.isJourney()) {
+                return -1;
+            } else {
+                return 1;
+            }
+        }
     },
     /**
      * Method: private _compareRouteElements
@@ -272,15 +302,15 @@ BusPass.ListViewController.prototype = {
         // I don't know why this doesn't work on directly on div[0].
         div.click(function() {
             console.log("clicked on " + route.getName() + " - " + this.getAttribute("data-routeid"));
-            ctrl._onRouteClick(ctrl,route);
+            ctrl.onRouteClicked(ctrl,route);
         });
         div.mouseover(function() {
             console.log("moveover on " + route.getName() + " - " + this.getAttribute("data-routeid"));
-            ctrl._onRouteMouseOver(ctrl,route);
+            ctrl.onRouteMouseOver(ctrl,route);
         });
         div.mouseout(function() {
             console.log("mouseout on " + route.getName() + " - " + this.getAttribute("data-routeid"));
-            ctrl._onRouteMouseOut(ctrl,route);
+            ctrl.onRouteMouseOut(ctrl,route);
         });
         return div;
     },
@@ -298,28 +328,5 @@ BusPass.ListViewController.prototype = {
 
     _triggerCallback : function(cb, route) {
         cb.apply(this.scope, [route]);
-    },
-
-    _onRouteClick : function(ctrl, route) {
-        console.log("onRouteClick " + route.getName() + " - " + route.isSelected());
-        if (route.isSelected()) {
-            ctrl.unselectRouteNoTrigger(route);
-            ctrl._triggerCallback(ctrl.onRouteUnselected, route);
-        } else {
-            ctrl.selectRouteNoTrigger(route);
-            ctrl._triggerCallback(ctrl.onRouteSelected, route);
-        }
-    },
-
-    _onRouteMouseOver : function(ctrl,route) {
-        console.log("_onRouteMouseOver " + route.getName() + " selected " + route.isSelected());
-        ctrl.highlightRouteNoTrigger(route);
-        ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
-    },
-
-    _onRouteMouseOut : function(ctrl,route) {
-        console.log("_onRouteMouseOut " + route.getName() + " selected " + route.isSelected());
-        ctrl.unhighlightRouteNoTrigger(route);
-        ctrl._triggerCallback(ctrl.onRouteUnhighlighted, route);
     },
 };
