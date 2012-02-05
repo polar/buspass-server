@@ -1,3 +1,10 @@
+/**
+ * Class: ListViewController
+ * 
+ * This class controls a view of list items that represent a
+ * route. It has a sorting function. There is also a concept
+ * of selection, highlighting, and visibility.
+ */
 BusPass.ListViewController = function(options) {
     this._routes = [];
     this._selectedRoutes = [];
@@ -37,13 +44,13 @@ BusPass.ListViewController.prototype = {
         }
     },
 
-    onRouteMouseOver : function(ctrl,route) {
+    onRouteMouseOver : function(ctrl, route) {
         console.log("_onRouteMouseOver " + route.getName() + " selected " + route.isSelected());
         ctrl.highlightRouteNoTrigger(route);
         ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
     },
 
-    onRouteMouseOut : function(ctrl,route) {
+    onRouteMouseOut : function(ctrl, route) {
         console.log("_onRouteMouseOut " + route.getName() + " selected " + route.isSelected());
         ctrl.unhighlightRouteNoTrigger(route);
         ctrl._triggerCallback(ctrl.onRouteUnhighlighted, route);
@@ -78,6 +85,21 @@ BusPass.ListViewController.prototype = {
         route.__element.parentNode.removeChild(route.__element);
         route.__element = null;
     },
+    
+    /**
+     * Method: setVisibility
+     * This method sets the visibility of the route in the 
+     * ListView.
+     */
+    setVisibility : function(route, state) {
+        // We store an attribute on the route for our own use.
+        route.setNameVisible(state);
+        if (route.isNameVisible()) {
+            route.__element.className = this._removeClass(route.__element.className, "route-invisible");
+        } else {
+            route.__element.className = this._addClass(route.__element.className, "route-invisible");
+        }
+    },
 
     /**
      * Method: clearRoutes
@@ -97,8 +119,7 @@ BusPass.ListViewController.prototype = {
         console.log("list.selectRoutesNoTrigger: selecting " + route.getName() + ":" + route.getId());
         this.unselectAllRoutesNoTrigger();
         this._selectedRoutes.push(route);
-        route.setSelected(true);
-        route.__element.className = "item row route-selected";
+        route.__element.className = this._addClass(route.__element.className, "route-selected");
     },
 
     _remove : function (a,x) {
@@ -145,7 +166,6 @@ BusPass.ListViewController.prototype = {
     unselectRouteNoTrigger : function(route) {
         console.log("list.unselectRoutesNoTrigger: unselecting " + route.getName() + ":" + route.getId());
         this._selectedRoutes = this._remove(this._selectedRoutes,route);
-        route.setSelected(false);
         route.__element.className = this._removeClass(route.__element.className, "route-selected");
     },
 
@@ -159,7 +179,6 @@ BusPass.ListViewController.prototype = {
         var sroutes = this._selectedRoutes;
         for(var i = 0; i < sroutes.length; i++) {
             console.log("list.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
-            sroutes[i].setSelected(false);
             sroutes[i].__element.className = this._removeClass(sroutes[i].__element.className, "route-selected");
         }
         this._selectedRoutes = [];

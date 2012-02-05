@@ -54,7 +54,7 @@
         function nameVisible(visibility) {
              var routes = basket.getJourneys();
              for(var i = 0; i < routes.length; i++ ) {
-                 routes[i].setNameVisible(visibility);
+                 listView.setVisibility(routes[i], visibility);
              }
              listView.redraw();
         }

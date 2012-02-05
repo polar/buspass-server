@@ -174,7 +174,7 @@ Route.prototype = {
         this._hasActiveJourneys = state;
     },
 
-    isHasActiveJourneys : function () {
+    hasActiveJourneys : function () {
         return this._hasActiveJourneys;
     },
 

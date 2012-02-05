@@ -50,6 +50,13 @@
             $("#onRestart")[0].disabled=true;
         };
 
+        function setVisibility(visibility) {
+             var routes = basket.getJourneys();
+             for(var i = 0; i < routes.length; i++ ) {
+                 view.setVisibility(routes[i], visibility);
+             }
+             view.redraw();
+        }
     </script>
 <script>
 // execute your scripts when DOM is ready. this is a good habit
@@ -106,18 +113,22 @@ $(function() {
         basket.progressListener = {
             onSyncStart : function () {
                 console.log("Basket: SyncStart");
+                $("#message").html("Starting Update");
             },
             onSyncEnd : function (nRoutes) {
                 console.log("Basket: SyncEnd");
+                $("#message").html("Sync Ended");
             },
-            onRouteStart : function (iRoute) {
+            onRouteStart : function (iRoute,nRoutes) {
                 console.log("Basket: StartRoute " + iRoute);
             },
-            onRouteEnd : function (iRoute) {
+            onRouteEnd : function (iRoute,nRoutes) {
                 console.log("Basket: EndRoute " + iRoute);
+                $("#message").html("Progress " +(100.0*iRoute/nRoutes) + "%");
             },
             onDone : function () {
                 console.log("Basket: Done.");
+                $("#message").html("Update Done");
             },
         };
 
@@ -129,6 +140,8 @@ $(function() {
         $("#onStop")[0].disabled=true;
         $("#onRestart")[0].disabled=true;
         $("#onDestroy")[0].disabled=true;
+        $("#visibile")[0].disabled=false;
+        $("#invisibile")[0].disabled=false;
 
 });
 </script>
@@ -158,6 +171,8 @@ $(function() {
             <button id="onStop"  class="btn" onclick="onStop()">onStop</button>
             <button id="onRestart" class="btn" onclick="onRestart()">onRestart</button>
             <button id="onDestroy" class="btn" onclick="onDestroy()">onDestroy</button>
+            <button id="visibile" class="btn" onclick="setVisibility(true)">Make Visible</button>
+            <button id="invisibile" class="btn" onclick="setVisibility(false)">Make Invisible</button>
         </DIV>
         <DIV class="span6"/>
         <div class="row">

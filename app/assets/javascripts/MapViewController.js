@@ -174,7 +174,7 @@ BusPass.MapViewController.prototype = {
     unselectAllRoutesNoTrigger : function() {
         console.log("map.unselectAllRoutes: unselecting");
         var sroutes = this._selectedRoutes;
-        for(i in sroutes) {
+        for(var i = 0; i < sroutes.length; i++) {
             // This will generate callbacks.
             console.log("map.unselectAllRoutes.route: unselecting " + sroutes[i].getName() + ":" + sroutes[i].getId());
             route.setSelected(false);
@@ -224,7 +224,7 @@ BusPass.MapViewController.prototype = {
      * It doesn't trigger callbacks.
      */
     unhighlightAllRoutesNoTrigger : function() {
-        for(i in this._routes) {
+        for(var i = 0; i < this._routes.length; i++) {
             // This may generate callbacks.
             this.unhighlightRouteNoTrigger(this._routes[i]);
         }
@@ -251,6 +251,12 @@ BusPass.MapViewController.prototype = {
         console.log("added vector layer");
     },
 
+    setVisibility : function(route, state) {
+        // We set an attribute on the route so that the drawing intent
+        // filter Rule will pick it up.
+        route.setPathVisible(state);
+    },
+    
     /**
      * Method: redraw
      * This method triggers a redraw of the vector layer. It returns

@@ -27,13 +27,27 @@ class WebmapController < ApplicationController
       format.json { render :json => data }
     end
   end
+  
+  def journey
+    @object ||= VehicleJourney.find_by_persistentid(params[:id])
 
-  def routedef
-    @object ||= Route.find_by_persistentid(params[:id])
-
-    data =  getRouteDefinitionJSON(@object)
+    data =  getRouteGeoJSON(@object)
     respond_to do |format|
       format.json { render :json => data }
+    end
+  end
+
+  def routedef
+    @object   = params[:type] == "V" &&
+                 VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+    @object ||= params[:type] == "R" &&
+                 Route.find_by_persistentid(params[:id])
+    # We are only really lax here if we are typing things in.
+    @object ||= VehicleJourney.find_by_persistentid(params[:id], :include => "service")
+    @object ||= Route.find_by_persistentid(params[:id])
+
+    respond_to do |format|
+      format.json { render :json => getDefinitionJSON(@object) }
     end
   end
 
@@ -92,11 +106,22 @@ class WebmapController < ApplicationController
     "#{journey.display_name.tr(",","_")},#{journey.persistentid},V,#{route.persistentid},#{route.version}"
   end
 
+
+  def getDefinitionJSON(route_journey)
+    if (route_journey.is_a? Route)
+      getRouteDefinitionJSON(route_journey)
+    elsif (route_journey.is_a VehicleJourney)
+      getJourneyDefinitionJSON(route_journey)
+    else
+      nil
+    end
+  end
+  
  def getRouteDefinitionJSON(route)
    box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
    data = {}
-   data[:_type]='route'
    data[:_id]="#{route.persistentid}"
+   data[:_type] = 'route'
    data[:_name]="#{route.display_name}"
    data[:_code]="#{route.code}"
    data[:_version]="#{route.version}"
@@ -108,7 +133,27 @@ class WebmapController < ApplicationController
    return data
  end
 
+ def getJourneyDefinitionJSON(journey)
+   box = journey.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
+   data = {}
+   data[:_id]="#{journey.persistentid}"
+   data[:_type] = 'journey'
+   data[:_name]="#{journey.display_name}"
+   data[:_code]="#{journey.service.journey.code}"
+   data[:_version]="#{journey.service.route.version}"
+   data[:_geoJSONUrl]="/webmap/journey/#{journey.persistentid}.json"
+   data[:_startOffset] = "#{vehicle_journey.start_time}"
+   data[:_duration] ="#{vehicle_journey.duration}"
+   data[:_locationRefreshRate] = "10"
+   data[:_nw_lon]="#{box[0][0]}"
+   data[:_nw_lat]="#{box[0][1]}"
+   data[:_se_lon]="#{box[1][0]}"
+   data[:_se_lat]="#{box[1][1]}"
+   return data
+ end
 
+
+  # works for VehicleJourney or Route
   def getRouteDefinitionCoords(route)
     patterns = route.journey_patterns
     # Make the patterns unique.

@@ -2,7 +2,7 @@
     <script type="text/javascript">
         console.log("STARTING TEST SETUP");
         var basket;
-        var mapView;
+        var view;
         function login() {
             api.login(function() {});
             $("#Login")[0].disabled=true;
@@ -50,14 +50,12 @@
             $("#onCreate")[0].disabled=false;
             $("#onRestart")[0].disabled=true;
         };
+        
+        function goBack() {
+            view.back();
+        };
+            
 
-        function pathVisible(visibility) {
-             var routes = basket.getJourneys();
-             for(var i = 0; i < routes.length; i++ ) {
-                 mapView.setVisibility(routes[i], visibility);
-             }
-             mapView.redraw();
-        }
     </script>
 <script>
 // execute your scripts when DOM is ready. this is a good habit
@@ -66,35 +64,27 @@ $(function() {
         // initialize scrollable with mousewheel support
         $("#routesView").scrollable({ vertical: true, mousewheel: true });
         api = new BusPassAPI("http://localhost:3000/");
-        mapView = new BusPass.MapViewController( {
+        view = new BusPass.ActivePlanController( {
             scope : this,
-            onRouteSelected : function( route ) {
-                $("#message").html("<span style='color:red'>Route Selected: " + route.getCode() + " " +route.getName() + "</span>");
-            },
-            onRouteUnselected : function( route ) {
-                $("#message").html("<span style='color:blue'>Route Unselected: " + route.getCode() + " " +route.getName() + "</span>");
-            },
-            onRouteHighlighted : function( route ) {
-                $("#message").html("<span style='color:green'>Route Highlighted: " + route.getCode() + " " +route.getName() + "</span>");
-            },
-            onRouteUnhighlighted : function( route ) {
-                $("#message").html("<span style='color:black'>Route Unhighlighted: " + route.getCode() + " " +route.getName() + "</span>");
+            onStateChanged : function( oldState, newState, direction ) {
+                $("#message").html("<span style='color:red'>State Change: " + oldState.state + " --> " + newState.state + " " + direction + "</span>");
             },
         });
-        mapView.mapView("#map");
+        view.mapView($("#map")[0]);
+        view.listView($("#routesView .items"));
         basket = new BusPass.JourneyBasket()
         basket.busAPI = api;
         basket.journeyStore = new BusPass.JourneyStore();
         basket.onJourneyAddedListener =  {
             onJourneyAdded : function (basket, r) {
                 console.log("Route Added! " + r.getName() + " : " + r.getId());
-                mapView.addRoute(r);
+                view.addRoute(r);
             }
         };
 
         basket.onJourneyRemovedListener = {
             onJourneyRemoved : function (basket, r) {
-                mapView.removeRoute(r);
+                view.removeRoute(r);
             }
         };
 
@@ -109,22 +99,25 @@ $(function() {
                 alert("Basket IO Error: " + ioe.message);
             }
         };
-
         basket.progressListener = {
             onSyncStart : function () {
                 console.log("Basket: SyncStart");
+                $("#message").html("Starting Update");
             },
             onSyncEnd : function (nRoutes) {
                 console.log("Basket: SyncEnd");
+                $("#message").html("Sync Ended");
             },
-            onRouteStart : function (iRoute) {
+            onRouteStart : function (iRoute,nRoutes) {
                 console.log("Basket: StartRoute " + iRoute);
             },
-            onRouteEnd : function (iRoute) {
+            onRouteEnd : function (iRoute,nRoutes) {
                 console.log("Basket: EndRoute " + iRoute);
+                $("#message").html("Progress " +(100.0*iRoute/nRoutes) + "%");
             },
             onDone : function () {
                 console.log("Basket: Done.");
+                $("#message").html("Update Done");
             },
         };
 
@@ -136,8 +129,7 @@ $(function() {
         $("#onStop")[0].disabled=true;
         $("#onRestart")[0].disabled=true;
         $("#onDestroy")[0].disabled=true;
-        $("#visibile")[0].disabled=false;
-        $("#invisibile")[0].disabled=false;
+        $("#backButton")[0].disabled=false;
 
 });
 </script>
@@ -167,8 +159,7 @@ $(function() {
             <button id="onStop"  class="btn" onclick="onStop()">onStop</button>
             <button id="onRestart" class="btn" onclick="onRestart()">onRestart</button>
             <button id="onDestroy" class="btn" onclick="onDestroy()">onDestroy</button>
-            <button id="visibile" class="btn" onclick="pathVisible(true)">Make Visible</button>
-            <button id="invisibile" class="btn" onclick="pathVisible(false)">Make Invisible</button>
+            <button id="backButton" class="btn" onclick="goBack()">Go Back</button>
         </DIV>
         <DIV class="span6"/>
         <div class="row">
