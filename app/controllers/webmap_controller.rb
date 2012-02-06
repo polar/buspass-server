@@ -92,7 +92,7 @@ class WebmapController < ApplicationController
     "#{route.name.tr(",","_")},#{route.persistentid},R,#{route.version}"
   end
 
-  def getJourneySpec(route)
+  def getJourneySpec(journey, route)
     data = {}
     data["name"] = journey.display_name.tr(",","_")
     data["id"] = journey.persistentid
@@ -110,7 +110,7 @@ class WebmapController < ApplicationController
   def getDefinitionJSON(route_journey)
     if (route_journey.is_a? Route)
       getRouteDefinitionJSON(route_journey)
-    elsif (route_journey.is_a VehicleJourney)
+    elsif (route_journey.is_a? VehicleJourney)
       getJourneyDefinitionJSON(route_journey)
     else
       nil
@@ -134,16 +134,19 @@ class WebmapController < ApplicationController
  end
 
  def getJourneyDefinitionJSON(journey)
-   box = journey.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
+   box = journey.journey_pattern.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
    data = {}
    data[:_id]="#{journey.persistentid}"
    data[:_type] = 'journey'
    data[:_name]="#{journey.display_name}"
-   data[:_code]="#{journey.service.journey.code}"
+   data[:_code]="#{journey.service.route.code}"
    data[:_version]="#{journey.service.route.version}"
    data[:_geoJSONUrl]="/webmap/journey/#{journey.persistentid}.json"
-   data[:_startOffset] = "#{vehicle_journey.start_time}"
-   data[:_duration] ="#{vehicle_journey.duration}"
+   data[:_startOffset] = "#{journey.start_time}"
+   data[:_duration] ="#{journey.duration}"
+   # TODO: TimeZone for Locality.
+   data[:_startTime] = (Time.parse("0:00") + journey.start_time.minutes).strftime("%H:%M %P")
+   data[:_endTime] = (Time.parse("0:00") + journey.start_time.minutes + journey.duration.minutes).strftime("%H:%M %P")
    data[:_locationRefreshRate] = "10"
    data[:_nw_lon]="#{box[0][0]}"
    data[:_nw_lat]="#{box[0][1]}"

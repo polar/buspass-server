@@ -59,9 +59,9 @@ BusPass.ActivePlanController.prototype = {
     
     addRoute : function(route) {
         this._routes.push(route);
-        this._updateActiveJourneys();
         this._listViewC.addRoute(route);
         this._mapViewC.addRoute(route);
+        this._updateActiveJourneys();
         
         this._setVisibility(this._stateStack[0], route);
         this._mapViewC.redraw();
@@ -120,19 +120,21 @@ BusPass.ActivePlanController.prototype = {
                 this.onStateChanged(state,newState, "FORWARD");
                 break;
             case state.SHOW_ROUTE:
-                newState.state = newState.SHOW_VEHICLE;
-                newState.selectedRouteCode = route.getCode();
-                newState.selectedRouteCodes = [route.getCode()];
-                newState.selectedRoutes = null;
-                
-                this._mapViewC.unselectRouteNoTrigger(route);
-                this._listViewC.unselectRouteNoTrigger(route);
-                for(var i = 0; i < this._routes.length; i++) {
-                    var route = this._routes[i];
-                    this._setVisibility(newState, route);
+                if (route.isActiveJourney()) {
+                    newState.state = newState.SHOW_VEHICLE;
+                    newState.selectedRouteCode = route.getCode();
+                    newState.selectedRouteCodes = [route.getCode()];
+                    newState.selectedRoutes = [route];
+                    
+                    this._mapViewC.unselectRouteNoTrigger(route);
+                    this._listViewC.unselectRouteNoTrigger(route);
+                    for(var i = 0; i < this._routes.length; i++) {
+                        var route = this._routes[i];
+                        this._setVisibility(newState, route);
+                    }
+                    this._stateStack.splice(0,0,newState);
+                    this.onStateChanged(state,newState, "FORWARD");
                 }
-                this._stateStack.splice(0,0,newState);
-                this.onStateChanged(state,newState, "FORWARD");
                 break;
             case state.SHOW_VEHICLE:
                 this._mapViewC.unselectRouteNoTrigger(route);
@@ -168,6 +170,7 @@ BusPass.ActivePlanController.prototype = {
                     newState.state = newState.SHOW_VEHICLE;
                     newState.selectedRouteCode = route.getCode();
                     newState.selectedRouteCodes = [route.getCode()];
+                    newState.selectedRoutes = [route];
                     for(var i = 0; i < this._routes.length; i++) {
                         var route = this._routes[i];
                         this._setVisibility(newState, route);
@@ -179,7 +182,7 @@ BusPass.ActivePlanController.prototype = {
                 break;
             case state.SHOW_VEHICLE:
                 this._mapViewC.redraw();
-                this._listViewC.redraw();
+                //this._listViewC.redraw();
                 break;
         }
     },
@@ -234,16 +237,16 @@ BusPass.ActivePlanController.prototype = {
                             this._listViewC.setVisibility(display, true);
                             this._mapViewC.setVisibility(display, true);
                         }
-                    } else if (display.isActiveJourney()) {
+                    } else {
                         // Only show Paths of Active Routes with current locations.
                         this._listViewC.setVisibility(display, false); // Don't show the bus name
-                        this._mapViewC.setVisibility(display, true);
-                    }
-                    } else {
-                        this._listViewC.setVisibility(display, false);
                         this._mapViewC.setVisibility(display, false);
                     }
-                    break;
+                } else {
+                    this._listViewC.setVisibility(display, false);
+                    this._mapViewC.setVisibility(display, false);
+                }
+                break;
             case state.SHOW_ROUTE:
                 if (state.selectedRouteCodes.indexOf(display.getCode()) != -1) {
                     if (display.isRouteDefinition()) {
@@ -254,7 +257,7 @@ BusPass.ActivePlanController.prototype = {
                             this._listViewC.setVisibility(display, true);
                             this._mapViewC.setVisibility(display, true);
                         }
-                    } else if (display.isActiveJourney()) {
+                    } else {
                         // Only show Paths of Active Routes with current locations.
                         this._listViewC.setVisibility(display, true); 
                         this._mapViewC.setVisibility(display, true);
@@ -265,7 +268,7 @@ BusPass.ActivePlanController.prototype = {
                 }
                 break;
             case state.SHOW_VEHICLE:
-                if (!display.isActiveJourney()) {
+                if (!display.isJourney()) {
                     this._listViewC.setVisibility(display, false);
                     this._mapViewC.setVisibility(display, false);
                 }

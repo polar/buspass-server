@@ -220,7 +220,7 @@ BusPass.JourneyBasket.prototype = {
      * the Worker.
      *
      * Parameters:
-     * journeyid <NameId>  The Journey Name
+     * journeyid <NameId>  The Journey Nameid.
      * progress_index  <int>  The index for the purpose of the progressListener
      * end_progress_index <int> The amount of routes being retrieved.
      */

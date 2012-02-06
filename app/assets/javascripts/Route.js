@@ -114,6 +114,14 @@ Route.prototype = {
         // TODO: fill in.
     },
 
+    getStartTime : function () {
+        return this._startTime;
+    },
+    
+    getEndTime : function () {
+        return this._endTime;
+    },
+    
     // Display Stuff
     /**
      * Method: setSelected

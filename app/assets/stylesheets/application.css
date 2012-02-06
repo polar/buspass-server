@@ -24,6 +24,9 @@
     height:20000em;
 }
 
+.route-times .route-time {
+    font-size: 6pt;
+}
 
 /* Display of a Route Code */
 .item.route-selected {

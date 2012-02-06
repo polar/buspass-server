@@ -274,7 +274,7 @@ BusPass.ListViewController.prototype = {
                 return cmp;
             }
         } else {
-            if (r1.isJourney()) {
+            if (r1.isRouteDefinition()) {
                 return -1;
             } else {
                 return 1;
@@ -302,13 +302,17 @@ BusPass.ListViewController.prototype = {
                 "<div class='span1 route-code' data-role='route-code'>" +
                     route.getCode() +
                 "</div>"+
-                "<div class='span5 route-name' data-role='route-name'>" +
+                "<div class='span3 route-name' data-role='route-name'>" +
                     route.getDisplayName() +
                 "</div>" +
-                "<div class='span1 route-times'>" +
-                    "<div class='route-time'>" +
+                "<div class='span2 route-times'>" +
+                    "<div class='span1 route-time .pull-left'>" +
+                      (route.isJourney() ?
+                        route.getStartTime() : "") +
                     "</div>" +
-                    "<div class='route-time'>" +
+                    "<div class='span1 route-time .pull-right'>" +
+                      (route.isJourney() ?
+                        route.getEndTime() : "") +
                     "</div>" +
                 "</div>" +
             "</div>";

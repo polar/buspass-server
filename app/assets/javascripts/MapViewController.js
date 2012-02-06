@@ -97,6 +97,9 @@ BusPass.MapViewController.prototype = {
             }),
             callback : function(response) {
                 ctrl._setMapFeatures(route,response.features);
+                if (route.__highlighted) {
+                    ctrl._highlightFeatures(route.__mapFeatures);
+                }
                 ctrl._routeVectors.addFeatures(response.features);
             }
         });
@@ -197,7 +200,11 @@ BusPass.MapViewController.prototype = {
         if (!route.isSelected()) {
             route.__nohighlightTrigger = true;
             // This may generate callbacks.
-            this._highlightFeatures(route.__mapFeatures);
+            if (route.__mapFeatures) {
+                this._highlightFeatures(route.__mapFeatures);
+            } else {
+                route.__highlighted = true;
+            }
             delete route.__nohighlightTrigger;
         }
     },
@@ -213,7 +220,10 @@ BusPass.MapViewController.prototype = {
         if (!route.isSelected()) {
             route.__nounhighlightTrigger = true;
             // This may generate callbacks.
-            this._unhighlightFeatures(route.__mapFeatures);
+            route.__highlighted = false;
+            if (route.__mapFeatures) {
+                this._unhighlightFeatures(route.__mapFeatures);
+            }
             delete route.__nounhighlightTrigger;
         }
     },
