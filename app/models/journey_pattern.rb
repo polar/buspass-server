@@ -175,7 +175,7 @@ class JourneyPattern < ActiveRecord::Base
   #                 we reached the end of the path.
   #
   def next_from(distance, ti_forward)
-    #puts "XXXXXX  next_from(#{distance}, #{ti_forward}"
+    puts "XXXXXX  next_from(#{distance}, #{ti_forward}"
     ti_remains = ti_forward
     tls = journey_pattern_timing_links
     current_dist = 0
@@ -183,27 +183,33 @@ class JourneyPattern < ActiveRecord::Base
     # We have to find out which JPTL which has to figure the time.
     ans = tls[0].location_info_at(0)
     ans[:ti_remains] = ti_remains
+    li = 0
     for tl in tls do
       pathd = tl.path_distance
-      #puts "XXXXXX    cur_dist=#{current_dist} pathd=#{pathd} ti_remains=#{ti_remains} tl.time=#{tl.time.minutes} #{distance}"
-      if (ti_remains > 0)
-          # current_dist >= distance && current_dist >= distance - pathd
-          # We are almost done. We may hit this twice, because
-          # the time left by average speed may take it past
-          # the distance of this timing link. If so, we take the
-          # ti_remains minus the estimated time it took to get to the end of the
-          # timing link. We see where that left over time may get us on the
-          # next timing link, if there is one.
-          tldist = [pathd, [distance-current_dist,0].max].min
-          ans = tl.next_from(tldist, ti_remains)
-          current_dist += ans[:distance]
-          ti_dist += ans[:ti_dist]
-          ans[:distance] = current_dist
-          ans[:ti_dist] = ti_dist
-          ti_remains = ans[:ti_remains]
+      puts "XXX link #{li} cur_dist=#{current_dist} pathd=#{pathd} ti_remains=#{ti_remains} tl.time=#{tl.time.minutes}"
+      if (current_dist + pathd < distance)
+          current_dist += pathd
+      else
+        if (ti_remains > 0)
+            # current_dist >= distance && current_dist >= distance - pathd
+            # We are almost done. We may hit this twice, because
+            # the time left by average speed may take it past
+            # the distance of this timing link. If so, we take the
+            # ti_remains minus the estimated time it took to get to the end of the
+            # timing link. We see where that left over time may get us on the
+            # next timing link, if there is one.
+            tldist = [pathd, [distance-current_dist,0].max].min
+            ans = tl.next_from(tldist, ti_remains)
+            current_dist += ans[:distance]
+            ti_dist += ans[:ti_dist]
+            ans[:distance] = current_dist
+            ans[:ti_dist] = ti_dist
+            ti_remains = ans[:ti_remains]
+        end
       end
+      li += 1
     end
-    #puts "XXXXX Returns #{ans.inspect}"
+    puts "XXXXX Returns #{ans.inspect}"
     return ans
   end
 

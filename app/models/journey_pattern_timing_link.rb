@@ -137,10 +137,18 @@ class JourneyPatternTimingLink < ActiveRecord::Base
   #
   def next_from(distance, time)
     dist = distance + average_speed * time
-    #puts "JPTL:next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
+    puts "     JPTL:next_from(#{distance},#{time}) : avg = #{average_speed}, dist = #{dist} path_distance = #{path_distance}"
     ans = getDirectionAndPointOnPath(view_path_coordinates["LonLat"], dist, average_speed)
     ans[:speed] = average_speed
-    ans[:ti_remains] = time - (ans[:distance]-distance)/average_speed
+    # if the total distance is less than the path distance,
+    # then we should have eaten the time remaining. This cuts down
+    # on errors such as ti_remains = 5.32907051820075e-15
+    if (ans[:distance] < path_distance)
+        ans[:ti_remains] = 0.0
+    else
+        ans[:ti_remains] = time - (ans[:distance]-distance)/average_speed
+    end
+    puts "     JTP:  returns #{ans.inspect}"
     return ans
   end
 

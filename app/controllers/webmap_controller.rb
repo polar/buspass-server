@@ -27,7 +27,7 @@ class WebmapController < ApplicationController
       format.json { render :json => data }
     end
   end
-  
+
   def journey
     @object ||= VehicleJourney.find_by_persistentid(params[:id])
 
@@ -77,6 +77,25 @@ class WebmapController < ApplicationController
     end
   end
 
+  def curloc
+      @vehicle_journey = VehicleJourney.find_by_persistentid(params[:id]);
+
+      if @vehicle_journey != nil && @vehicle_journey.journey_location != nil
+          @journey_location = @vehicle_journey.journey_location
+      end
+
+
+      respond_to do |format|
+          format.html { render :nothing, :status => 403 } #forbidden
+          format.json {
+            if (@vehicle_journey == nil)
+                render :nothing, :status => 505 # not found
+            end
+            render :json => getJourneyLocationJSON(@vehicle_journey, @journey_location)
+            }
+      end
+  end
+
   private
 
   def getRouteSpec(route)
@@ -116,7 +135,7 @@ class WebmapController < ApplicationController
       nil
     end
   end
-  
+
  def getRouteDefinitionJSON(route)
    box = route.theBox # [[nw_lon,nw_lat],[se_lon,se_lat]]
    data = {}
@@ -156,42 +175,77 @@ class WebmapController < ApplicationController
  end
 
 
-  # works for VehicleJourney or Route
-  def getRouteDefinitionCoords(route)
-    patterns = route.journey_patterns
-    # Make the patterns unique.
-    cs = []
-    for pattern in patterns do
-      coords = pattern.view_path_coordinates["LonLat"]
-      unique = true
-      for c in cs do
-        if coords == c
-          unique = false
-          break
-        end
-      end
-      if unique
-        cs << coords
-      end
-    end
-    cs[0]
-  end
+ # works for VehicleJourney or Route
+ def getRouteDefinitionCoords(route)
+     if (route.is_a? VehicleJourney)
+         patterns = [route.journey_pattern]
+     else
+         patterns = route.journey_patterns
+     end
+     # Make the patterns unique.
+     cs = []
+     for pattern in patterns do
+         coords = pattern.view_path_coordinates["LonLat"]
+         unique = true
+         for c in cs do
+             if coords == c
+                 unique = false
+                 break
+             end
+         end
+         if unique
+             cs << coords
+         end
+     end
+     cs
+ end
+
+ def makeGeoJSON(coords)
+     data = {
+         "type" => "Feature",
+         "properties" => {},
+         "geometry" => {
+                        "type" => "LineString",
+                        "coordinates" => coords
+                       },
+         "crs" => {
+                   "type"=> "name",
+                   "properties" => {
+                                    "name" => "urn:ogc:def:crs:OGC:1.3:CRS84"
+                                   }
+                  }
+     }
+     return data
+ end
 
   def getRouteGeoJSON(route)
-    data = {
-      "type" => "Feature",
-      "properties" => {},
-      "geometry" => {
-        "type" => "LineString",
-        "coordinates" => getRouteDefinitionCoords(route)
-      },
-      "crs" => {
-        "type"=> "name",
-        "properties" => {
-          "name" => "urn:ogc:def:crs:OGC:1.3:CRS84"
-        }
+      cs =  getRouteDefinitionCoords(route)
+      features = cs.map {|x| makeGeoJSON(x)}
+      data = {
+          "type" => "FeatureCollection",
+          "features" => features
       }
-    }
-    return data
+      return data
   end
+
+  def getJourneyLocationJSON(journey, journey_location)
+      data = {}
+      data[:id]="#{journey.persistentid}"
+      data[:type] = 'journey'
+      data[:name]="#{journey.display_name}"
+      data[:code]="#{journey.service.route.code}"
+      if (journey_location != nil)
+        data[:reported]  = journey_location.reported_time.to_i # secs from epoch
+        data[:recorded]  = journey_location.recorded_time.to_i # secs from epoch
+        data[:lonlat]    = journey_location.coordinates
+        data[:timediff]  = journey_location.timediff.to_i # minutes -early,+late
+        data[:direction] = journey_location.direction
+        data[:distance]  = journey_location.distance
+        data[:on_route]  = journey_location.on_route?
+      else
+        data[:gone] = true
+      end
+      return data
+  end
+
 end

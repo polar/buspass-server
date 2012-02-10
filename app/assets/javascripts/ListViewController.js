@@ -1,6 +1,6 @@
 /**
  * Class: ListViewController
- * 
+ *
  * This class controls a view of list items that represent a
  * route. It has a sorting function. There is also a concept
  * of selection, highlighting, and visibility.
@@ -46,8 +46,10 @@ BusPass.ListViewController.prototype = {
 
     onRouteMouseOver : function(ctrl, route) {
         console.log("_onRouteMouseOver " + route.getName() + " selected " + route.isSelected());
-        ctrl.highlightRouteNoTrigger(route);
-        ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
+        if (route.isHighlightable()) {
+            ctrl.highlightRouteNoTrigger(route);
+            ctrl._triggerCallback(ctrl.onRouteHighlighted, route);
+        }
     },
 
     onRouteMouseOut : function(ctrl, route) {
@@ -82,13 +84,14 @@ BusPass.ListViewController.prototype = {
             };
         }
         this._routes = rs;
+        // This maybe should be $(route.__element.parentNode).remove(route.__element);
         route.__element.parentNode.removeChild(route.__element);
         route.__element = null;
     },
-    
+
     /**
      * Method: setVisibility
-     * This method sets the visibility of the route in the 
+     * This method sets the visibility of the route in the
      * ListView.
      */
     setVisibility : function(route, state) {
@@ -98,6 +101,30 @@ BusPass.ListViewController.prototype = {
             route.__element.className = this._removeClass(route.__element.className, "route-invisible");
         } else {
             route.__element.className = this._addClass(route.__element.className, "route-invisible");
+        }
+    },
+    /**
+     * Method: setHightability
+     * This method sets whether the list item of the route in the
+     * can be highlighted.
+     */
+    setHighlightability : function(route, state) {
+        // We store an attribute on the route for our own use.
+        route.setHighlightable(state);
+    },
+
+    /**
+     * Method: setHasActiveJourneys
+     * This method sets whether the list item of the route should
+     * indicate that it has ActiveJourneys.
+     */
+    setHasActiveJourneys : function(route, state) {
+        if (state) {
+            if (route.isNameVisible()) {
+                route.__element.className = this._addClass(route.__element.className, "route-hasactivejourneys");
+            } else {
+                route.__element.className = this._removeClass(route.__element.className, "route-hasactivejourneys");
+            }
         }
     },
 
@@ -297,15 +324,18 @@ BusPass.ListViewController.prototype = {
     _constructRouteElement : function(route) {
         var ctrl = this;
         var visibility = route.isNameVisible() ? "" : " route-invisible";
+        var type = " rtype-" + route.getType();
         var div =
-            "<div class='item row" + visibility + "' data-role='" + route.getType() + "' data-routeid='"+ route.getId() + "'>" +
+            "<div class='item row" + visibility + type + "' data-role='" + route.getType() + "' data-routeid='"+ route.getId() + "'>" +
                 "<div class='span1 route-code' data-role='route-code'>" +
-                    route.getCode() +
+                "<div class='span1 route-icon'/>" +
+                route.getCode() +
                 "</div>"+
                 "<div class='span3 route-name' data-role='route-name'>" +
                     route.getDisplayName() +
                 "</div>" +
-                "<div class='span2 route-times'>" +
+                "<div class='span1 route-times'>" +
+                   "<div class='row'>" +
                     "<div class='span1 route-time .pull-left'>" +
                       (route.isJourney() ?
                         route.getStartTime() : "") +
@@ -314,6 +344,7 @@ BusPass.ListViewController.prototype = {
                       (route.isJourney() ?
                         route.getEndTime() : "") +
                     "</div>" +
+                  "</div>" +
                 "</div>" +
             "</div>";
         // Returns array [<div>]

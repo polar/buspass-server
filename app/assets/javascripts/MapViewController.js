@@ -96,11 +96,16 @@ BusPass.MapViewController.prototype = {
                                                 externalProjection: new OpenLayers.Projection("EPSG:4326")
             }),
             callback : function(response) {
-                ctrl._setMapFeatures(route,response.features);
-                if (route.__highlighted) {
-                    ctrl._highlightFeatures(route.__mapFeatures);
+                // if response.features is null, there was an error. Maybe remove the route?
+                if (response.features != null) {
+                    ctrl._setMapFeatures(route,response.features);
+                    if (route.__highlighted) {
+                        ctrl._highlightFeatures(route.__mapFeatures);
+                    }
+                    ctrl._routeVectors.addFeatures(response.features);
+                } else {
+                    console.log("addRoute: Cannot download Route definition features: " + response.priv.status + " " + response.priv.statusText);
                 }
-                ctrl._routeVectors.addFeatures(response.features);
             }
         });
         protocol.read();
@@ -242,23 +247,26 @@ BusPass.MapViewController.prototype = {
 
     mapView : function(jquery) {
         this._map = new OpenLayers.Map($(jquery)[0].id);
-        this._map.projection = "EPSG:23030";
+        this._map.projection = "EPSG:900913"; // Need by OSM
         this._map.displayProjection = new OpenLayers.Projection("EPSG:4326");
         var mapnik = new OpenLayers.Layer.OSM("OpenStreetMap (Mapnik)");
-
         this._map.addLayers([mapnik]);
         this._map.addControl(new OpenLayers.Control.LayerSwitcher());
         this._map.addControl(new OpenLayers.Control.MousePosition());
         this._map.setCenter(new OpenLayers.LonLat(-76.146669, 43.050952).transform(
             new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-            new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
-        ), 13 // Zoom level
+             new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
+        )
+        , 13 // Zoom level
         );
 
         this._routeVectors = this._constructVectorLayer();
         console.log("created vector layer");
-        this._map.addLayers([this._routeVectors]);
-        console.log("added vector layer");
+        this._locationMarkers = this._constructLocationLayer();
+        this._map.addLayers([this._routeVectors,this._locationMarkers]);
+        console.log("added vector and locations layer");
+        this._setupSelectControls([this._routeVectors,this._locationMarkers]);
+        console.log("added controls layer");
     },
 
     setVisibility : function(route, state) {
@@ -266,7 +274,106 @@ BusPass.MapViewController.prototype = {
         // filter Rule will pick it up.
         route.setPathVisible(state);
     },
-    
+
+
+    setTracking : function(route, state) {
+        // We set an attribute on the route so that the drawing intent
+        // filter Rule will pick it up.
+        route.setTracking(state);
+    },
+
+    moveAndCenterTo : function(route) {
+        if (route.__mapFeatures != null) {
+            var bounds = route.__mapFeatures[0].geometry.getBounds();
+            bounds = bounds.scale(1.2); // Scale out a bit.
+            //var centroid = route.__mapFeatures[0].geometry.getCentroid();
+            this._map.zoomToExtent(bounds, true);
+        }
+    },
+
+    moveToLocation : function(route) {
+        if (route.__mapFeatures != null) {
+            if (route.__marker != null) {
+                this._map.panTo(route.__marker[0].__lonlat);
+            }
+        }
+    },
+
+    /**
+     * Method: setLocation
+     *
+     * This method sets the location for the route. It performs
+     * the display of the bus arrow icon and does so by
+     * creating Vector Features and placing them on the markers
+     * layer.
+     *
+     * Paramteers
+     * route   <Route>  The route to set the location on.
+     *                  It should be of type "journey".
+     * loc     [lon,lat] It can be null, in which case the
+     *                   marker will be removed.
+     * direction <Radians> Bearing from North.
+     */
+    setLocation : function(route, loc, direction) {
+        if (route.__marker != null) {
+            this._locationMarkers.removeFeatures(route.__marker);
+            route.__marker = null;
+        }
+        if (loc != null) {
+            var lonlat = new OpenLayers.LonLat(loc[0],loc[1]).transform(
+                new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
+                );
+            var geoJSON = {
+                type: "Feature",
+                geometry: {
+                    type : "Point",
+                    coordinates : [lonlat.lon, lonlat.lat]
+                },
+                properties: {
+                    icon : "/assets/busarrow.png"
+                },
+            }
+            // In the direction (bearing) is opposite of how we must rotate
+            // And the rotation must be in degrees.
+            var rotation = -(direction / Math.PI)*180
+            var parser = new OpenLayers.Format.GeoJSON();
+
+            // We have a simple point as well incase the image
+            // is not there.
+            var marker1 = parser.parseFeature(geoJSON);
+            var marker2 = parser.parseFeature(geoJSON);
+            var marker = [marker1,marker2];
+
+            // Point
+            var style_mark1 = OpenLayers.Util.extend({}, OpenLayers.Feature.Vector.style['default']);
+            style_mark1.graphicOpacity = 1;
+            style_mark1.pointRadius = 5;
+            marker1.style = style_mark1;
+            marker1.__route = route; // For SelectControl
+            marker1.__lonlat = lonlat;
+
+            // Arrow Icon.
+            var style_mark2 = OpenLayers.Util.extend({}, OpenLayers.Feature.Vector.style['default']);
+            style_mark2.graphicOpacity = 1;
+            // The pointRadius actually governs the size of the icon.
+            style_mark2.pointRadius = 12;
+            // 0,0 is for top,left of image
+            style_mark2.externalGraphic = "/assets/busarrow.png";
+            // defaults center it. For now that's good enough.
+            //style_mark2.graphicXOffset = 0;
+            //style_mark2.graphicYOffset = 0;
+            style_mark2.rotation = rotation;
+            style_mark2.graphicTitle = "" + route.getCode() + " " + route.getDisplayName();
+            marker2.style = style_mark2;
+            marker2.__route = route; // For SelectControl
+            marker2.__lonlat = lonlat;
+
+            this._locationMarkers.addFeatures(marker);
+            route.__marker = marker;
+        }
+    },
+
     /**
      * Method: redraw
      * This method triggers a redraw of the vector layer. It returns
@@ -274,7 +381,8 @@ BusPass.MapViewController.prototype = {
      * for Layer.redraw().
      */
     redraw : function () {
-        return this._routeVectors.redraw();
+        this._routeVectors.redraw();
+        this._locationMarkers.redraw();
     },
 
     /**
@@ -334,19 +442,52 @@ BusPass.MapViewController.prototype = {
         });
     },
 
+    _constructLocationLayer : function() {
+        var layer = new OpenLayers.Layer.Vector("Locations", {
+        });
+        return layer;
+    },
+
+
     _constructVectorLayer : function() {
         var ctrl = this;
+        var strokeWidth = new OpenLayers.Rule({
+            context : function(feature) { return feature; },
+                                             filter : new OpenLayers.Filter({
+                                                 evaluate: function(feature) {
+                                                     console.log("strokeWidth: zoom=" + ctrl._map.zoom);
+                                                     return ctrl._map.zoom < 13;
+                                                 }
+                                             }),
+                                             symbolizer: {
+                                                 strokeWidth : 3
+                                             }
+        });
+        var onTracking = new OpenLayers.Rule({
+            context : function(feature) { return feature; },
+                                              filter : new OpenLayers.Filter({
+                                                  evaluate: function(feature) {
+                                                      console.log("isTracking: " + ctrl._routeVectors.selectedFeatures.length+" - " + feature.__route.isTracking());
+                                                      return feature.__route.isPathVisible() &&
+                                                             feature.__route.isTracking();
+                                                  }
+                                              }),
+                                              symbolizer: {
+                                                  strokeColor: "green",
+                                                  strokeOpacity : 0.8
+                                              }
+        });
         var pathVisible = new OpenLayers.Rule({
             context : function(feature) { return feature; },
-            filter : new OpenLayers.Filter({
-                evaluate: function(feature) {
-                    console.log("isPathVisible: " + ctrl._routeVectors.selectedFeatures.length+" - " + feature.__route.isPathVisible());
-                    return !feature.__route.isPathVisible();
-                }
-            }),
-            symbolizer: {
-                display: "none"
-            }
+                                              filter : new OpenLayers.Filter({
+                                                  evaluate: function(feature) {
+                                                      console.log("isPathVisible: " + ctrl._routeVectors.selectedFeatures.length+" - " + feature.__route.isPathVisible());
+                                                      return !feature.__route.isPathVisible();
+                                                  }
+                                              }),
+                                              symbolizer: {
+                                                  display: "none"
+                                              }
         });
         var showOneOrAllRule = new OpenLayers.Rule({
             context : function(feature) { return feature; },
@@ -362,7 +503,9 @@ BusPass.MapViewController.prototype = {
             }
         });
 
-        ctrl.defaultStyle.addRules([pathVisible,showOneOrAllRule,
+        ctrl.defaultStyle.addRules([strokeWidth, onTracking,pathVisible,showOneOrAllRule,
+                                   // We nned this rule, because if none apply
+                                   // it is not displayed.
                               new OpenLayers.Rule({
                                   elseFilter: true
                               })
@@ -384,6 +527,11 @@ BusPass.MapViewController.prototype = {
             },
             styleMap : styleMap
         });
+        return layer;
+    },
+
+    _setupSelectControls : function (layers) {
+        var ctrl = this;
 
         function report(ev) {
             console.log(ev);
@@ -444,7 +592,7 @@ BusPass.MapViewController.prototype = {
             ctrl._routeVectors.redraw();
         };
 
-        ctrl._highlightCtrl = new OpenLayers.Control.SelectFeature(layer, {
+        ctrl._highlightCtrl = new OpenLayers.Control.SelectFeature(layers, {
             hover: true,
             highlightOnly: true,
             multiple: true,
@@ -459,7 +607,7 @@ BusPass.MapViewController.prototype = {
             },
         });
 
-        ctrl._selectCtrl = new BusPass.MapViewController.SelectControl(layer, {
+        ctrl._selectCtrl = new BusPass.MapViewController.SelectControl(layers, {
                 scope: ctrl,
                 onSelect: onSelectRoute,
                 onUnselect: onUnselectRoute,
@@ -473,7 +621,6 @@ BusPass.MapViewController.prototype = {
 
         ctrl._highlightCtrl.activate();
         ctrl._selectCtrl.activate();
-        return layer;
     }
 
 };

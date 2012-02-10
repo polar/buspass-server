@@ -83,15 +83,40 @@ BusPassAPI.prototype = {
     fetchRouteDefinition : function( nameid, successC, failureC ) {
         var api = this;
         api.fetchRouteDefinitionData( nameid, function(data) {
-                var route = new Route(data);
+            var route = new Route(data);
+            if (successC != null) {
+                successC(route);
+            }
+        }, function(message) {
+            if (failureC != null) {
+                failureC(message);
+            }
+        });
+    },
+
+    fetchCurrentLocation : function( nameid, successC, failureC ) {
+        var api = this;
+
+        // The result Continuation
+        function resultC(result, status, response) {
+            console.log("HTTP Route Def: " + $.toJSON(response));
+            if (status == "success") {
                 if (successC != null) {
-                    successC(route);
+                    successC(result);
                 }
-            }, function(message) {
+            } else {
                 if (failureC != null) {
-                    failureC(message);
+                    failureC(response);
                 }
-            });
+            }
+        }
+
+        var url = this.apiMap["getJourneyLocation"] + "/" + nameid.id + ".json";
+        var args = "?web=1";
+        if (nameid.type != null) {
+            args += "&type=" + nameid.type;
+        }
+        $.get(url+args, resultC, "json");
     },
 
     fetchRouteDefinitionData : function( nameid, successC, failureC ) {

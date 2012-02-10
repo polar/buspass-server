@@ -22,7 +22,10 @@ Route.prototype = {
 
     _nameId : null,
     getNameId : function() {
-        return this._nameId;
+        return {
+            name : this._name,
+            id : this._id
+        }
     },
 
     _id : null,
@@ -117,11 +120,11 @@ Route.prototype = {
     getStartTime : function () {
         return this._startTime;
     },
-    
+
     getEndTime : function () {
         return this._endTime;
     },
-    
+
     // Display Stuff
     /**
      * Method: setSelected
@@ -148,6 +151,14 @@ Route.prototype = {
         return this._selected;
     },
 
+    isHighlightable : function() {
+        return this._isHighlightable;
+    },
+
+    setHighlightable : function(state) {
+        this._isHighlightable = state;
+    },
+
     // JourneyDisplay Stuff
 
     getDisplayName : function () {
@@ -170,12 +181,22 @@ Route.prototype = {
         return this._nameHighlighted;
     },
 
+    // MapView Controller
+
     setPathVisible : function (state) {
         this._pathVisible = state;
     },
 
     isPathVisible : function () {
         return this._pathVisible;
+    },
+
+    setTracking : function (state) {
+        this._tracking = state;
+    },
+
+    isTracking : function () {
+        return this._tracking;
     },
 
     setHasActiveJourneys : function (state) {

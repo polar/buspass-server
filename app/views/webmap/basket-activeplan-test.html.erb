@@ -50,11 +50,12 @@
             $("#onCreate")[0].disabled=false;
             $("#onRestart")[0].disabled=true;
         };
-        
+
         function goBack() {
             view.back();
         };
-            
+
+        var listView;
 
     </script>
 <script>
@@ -62,13 +63,15 @@
 $(function() {
         $("body").layout({ applyDefaultStyles: true });
         // initialize scrollable with mousewheel support
-        $("#routesView").scrollable({ vertical: true, mousewheel: true });
+        $("#routesView").scrollable({ vertical: true, mousewheel: true, keyboard : true, easing: "swing" });
         api = new BusPassAPI("http://localhost:3000/");
         view = new BusPass.ActivePlanController( {
+            busAPI : api,
             scope : this,
             onStateChanged : function( oldState, newState, direction ) {
                 $("#message").html("<span style='color:red'>State Change: " + oldState.state + " --> " + newState.state + " " + direction + "</span>");
-            },
+                $("#routesView").data("scrollable").seekTo(0);
+},
         });
         view.mapView($("#map")[0]);
         view.listView($("#routesView .items"));

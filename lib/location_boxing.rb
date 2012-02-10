@@ -187,6 +187,9 @@ module LocationBoxing
   def rad(angle)
     Math::PI/180*angle
   end
+  def deg(anglerad)
+      anglerad * 180 / Math::PI
+  end
   def sign(a)
     a == 0 ? 0 : (a < 0 ? -1 : 1)
   end
@@ -203,6 +206,17 @@ module LocationBoxing
     c = Math.sin(rad(c1[1]))*Math.sin(rad(c2[1])) + Math.cos(rad(c1[1])) * Math.cos(rad(c2[1]))*Math.cos(dlon)
 
     angle = Math.atan2(Math.sqrt(a*a + b*b),c)
+
+    # Using the Haversine Formula
+
+    dLon = rad(c2[0] - c1[0])
+    dLat = rad(c2[1] - c1[1])
+    lat1 = rad(c1[1])
+    lat2 = rad(c2[1])
+
+    a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+    c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   end
 
   #
@@ -215,6 +229,28 @@ module LocationBoxing
     return abs(dist)
   end
 
+  # Returns in Radians from North
+  def getBearing(p1, p2)
+      dLon = rad(p2[0]-p1[0])
+      lat2 = rad(p2[1])
+      lat1 = rad(p1[1])
+      y = Math.sin(dLon) * Math.cos(lat2)
+      x = Math.cos(lat1)*Math.sin(lat2) -
+            Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon)
+      brng = Math.atan2(y, x)
+  end
+
+  # http://www.movable-type.co.uk/scripts/latlong.html
+  def getDestinationPoint(start, d, bearing)
+      r = EARTH_RADIUS_FEET
+      lon1 = rad(start[0])
+      lat1 = rad(start[1])
+      lat2 = Math.asin( Math.sin(lat1)*Math.cos(d/r) +
+                        Math.cos(lat1)*Math.sin(d/r)*Math.cos(bearing) );
+      lon2 = lon1 + Math.atan2(Math.sin(bearing)*Math.sin(d/r)*Math.cos(lat1),
+                                   Math.cos(d/r)-Math.sin(lat1)*Math.sin(lat2));
+      return [deg(lon2),deg(lat2)]
+  end
   #
   # This function returns the Angle relative to the equator heading east
   # of the geodesic hypothenuse between the two points. It is directional.
@@ -511,17 +547,18 @@ module LocationBoxing
     last_point = vpcs.first
     ti_dist = 0
     for p2 in vpcs.drop(1) do
-      direction = getGeoAngle(last_point,p2)
+      direction = getBearing(last_point,p2)
       if (dist < target)
         dist2 = dist + getGeoDistance(last_point,p2)
         #puts "PoP: dist = #{dist} target = #{target} dist2 = #{dist2} target-dist = #{target-dist} last_point = #{last_point.inspect} p2= #{p2.inspect}"
         if (target <= dist2)
-          ratio = (target-dist)/(dist2-dist)
-          a = getGeoAngle(last_point,p2)
-          lon = last_point[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(last_point[1])) * LON_PER_FOOT)
-          lat = last_point[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
-          #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
-          # This is just integrity check. It can be eliminated.
+            lon, lat = getDestinationPoint(last_point,target-dist,direction)
+#           ratio = (target-dist)/(dist2-dist)
+#           a = getGeoAngle(last_point,p2)
+#           lon = last_point[0] + Math.cos(a) * (target-dist) * (1/Math.cos(rad(last_point[1])) * LON_PER_FOOT)
+#           lat = last_point[1] + Math.sin(a) * (target-dist) * LAT_PER_FOOT
+#           #puts "PoP: a = #{a} dist = #{target-dist} pop = #{[lon,lat].inspect}"
+#           # This is just integrity check. It can be eliminated.
           if !onLine(last_point,p2,60,[lon,lat])
             onLine1(last_point,p2,60,[lon,lat])
             raise "Not on Path"
