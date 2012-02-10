@@ -104,6 +104,36 @@ BusPass.ActivePlanController.prototype = {
         }
     },
 
+    getOnlyActive : function() {
+        return this._stateStack[0].onlyActive;
+    },
+
+    setOnlyActive : function (state) {
+        oldState = this._stateStack[0];
+        if (oldState.onlyActive != state) {
+            var newState = new BusPass.ActivePlanController.VisualState();
+            newState.state = oldState.stete;
+            newState.onlyActive = state;
+            newState.selectedRouteCode = oldState.selectedRouteCode;
+            newState.selecteRouteCodes = oldState.selectedRouteCodes;
+            if (oldState.selectedRoutes != null) {
+                newState.selectedRoutes = [];
+                for(var j = 0; j < oldState.selectedRoutes.length; j++) {
+                    // TODO: Maybe Only Active Routes?
+                    newState.selectedRoutes.push(oldState.selectedRoutes[j]);
+                }
+            }
+
+            this._stateStack.splice(0,0,newState);
+            for(var i = 0; i < this._routes.length; i++) {
+                var route = this._routes[i];
+                this._setVisibility(newState, route);
+            }
+            this.onStateChanged(state,newState, "FORWARD");
+        }
+    },
+
+
     _onLocationReceived : function (route, locationData) {
         this._mapViewC.setLocation(route, locationData.lonlat, locationData.direction);
     },

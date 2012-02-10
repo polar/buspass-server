@@ -55,6 +55,9 @@
             view.back();
         };
 
+        function toggleActive() {
+            view.setOnlyActive(!view.getOnlyActive());
+        };
         var listView;
 
     </script>
@@ -71,6 +74,11 @@ $(function() {
             onStateChanged : function( oldState, newState, direction ) {
                 $("#message").html("<span style='color:red'>State Change: " + oldState.state + " --> " + newState.state + " " + direction + "</span>");
                 $("#routesView").data("scrollable").seekTo(0);
+                if (newState.onlyActive) {
+                  $("#activeButton").html("Show All");
+                } else {
+                  $("#activeButton").html("Show Active");
+                }
 },
         });
         view.mapView($("#map")[0]);
@@ -133,6 +141,7 @@ $(function() {
         $("#onRestart")[0].disabled=true;
         $("#onDestroy")[0].disabled=true;
         $("#backButton")[0].disabled=false;
+        $("#activeButton")[0].disabled=false;
 
 });
 </script>
@@ -163,6 +172,7 @@ $(function() {
             <button id="onRestart" class="btn" onclick="onRestart()">onRestart</button>
             <button id="onDestroy" class="btn" onclick="onDestroy()">onDestroy</button>
             <button id="backButton" class="btn" onclick="goBack()">Go Back</button>
+            <button id="activeButton" class="btn" onclick="toggleActive()">Show Active</button>
         </DIV>
         <DIV class="span6">
             <div class="row">
