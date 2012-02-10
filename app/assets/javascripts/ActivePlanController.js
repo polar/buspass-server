@@ -112,7 +112,7 @@ BusPass.ActivePlanController.prototype = {
         oldState = this._stateStack[0];
         if (oldState.onlyActive != state) {
             var newState = new BusPass.ActivePlanController.VisualState();
-            newState.state = oldState.stete;
+            newState.state = oldState.state;
             newState.onlyActive = state;
             newState.selectedRouteCode = oldState.selectedRouteCode;
             newState.selecteRouteCodes = oldState.selectedRouteCodes;
@@ -129,7 +129,8 @@ BusPass.ActivePlanController.prototype = {
                 var route = this._routes[i];
                 this._setVisibility(newState, route);
             }
-            this.onStateChanged(state,newState, "FORWARD");
+            this._mapViewC.redraw();
+            this.onStateChanged(oldState, newState, "FORWARD");
         }
     },
 
