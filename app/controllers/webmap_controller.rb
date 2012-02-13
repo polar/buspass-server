@@ -14,9 +14,24 @@ class WebmapController < ApplicationController
           "getJourneyLocation" => "/webmap/curloc"
       }
 
-    respond_to do |format|
-      format.json { render :json => @api }
-    end
+      respond_to do |format|
+          format.json { render :json => @api }
+      end
+  end
+
+  def apiadm
+      @api = {
+          :majorVersion => 1,
+          :minorVersion => 0,
+          "getRoutePath" => "/webmap/route",
+          "getRouteJourneyIds" => "/webmap/all_route_journeys",
+          "getRouteDefinition" => "/webmap/routedef",
+          "getJourneyLocation" => "/webmap/curloc"
+      }
+
+      respond_to do |format|
+          format.json { render :json => @api }
+      end
   end
 
   def route
@@ -93,6 +108,41 @@ class WebmapController < ApplicationController
             end
             render :json => getJourneyLocationJSON(@vehicle_journey, @journey_location)
             }
+      end
+  end
+
+
+  # We are going return two types, Routes and VehicleJourneys.
+  def all_route_journeys
+      @routes = Route.all
+
+      # if we have a route or routes parameter, we are only looking for
+      # VehicleJourneys.
+      rs = []
+      if params[:routes] != nil
+          rs = params[:routes].split(',').map {|x| x.to_i}
+      end
+      if params[:route]
+          rs << params[:route].to_i
+      end
+      if !rs.empty?
+          @routes = @routes.select {|x| rs.include?(x.persistentid)}
+      end
+
+      puts("WE HAVE #{rs.length} Routes Ids " + rs.inspect);
+      puts("WE HAVE #{@routes.length} Routes Selected");
+      specs = []
+      if (!rs.empty?)
+        @vehicle_journeys = VehicleJourney.find_by_routes(@routes)
+        specs += @vehicle_journeys.map {|x| getJourneySpec(x,x.journey_pattern.route)}
+      else
+        specs += @routes.map {|x| getRouteSpec(x)}
+      end
+
+      puts("WE HAVE #{specs.length} RECORDS TO RETURN!");
+      respond_to do |format|
+          format.html { render :nothing, :status => 403 } #forbidden
+          format.json { render :json => specs }
       end
   end
 

@@ -4,7 +4,7 @@ BusPass.ActivePlanController = function(options) {
     this._stateStack = [];
     this._stateStack.push(new BusPass.ActivePlanController.VisualState());
 
-    this._mapViewC = new BusPass.MapViewController({
+    this._mapViewC = new BusPass.LocationMapViewController({
         scope : this,
         onRouteSelected : this._onMapRouteSelect,
         onRouteHighlighted : this._onMapRouteHighlight,
@@ -196,7 +196,7 @@ BusPass.ActivePlanController.prototype = {
                 newState.state = newState.SHOW_ROUTE;
                 newState.selectedRouteCode = route.getCode();
                 newState.selectedRouteCodes = [route.getCode()];
-                newState.selectedRoutes = null;
+                newState.selectedRoutes = [route];
 
                 this._mapViewC.unselectRouteNoTrigger(route);
                 this._listViewC.unselectRouteNoTrigger(route);

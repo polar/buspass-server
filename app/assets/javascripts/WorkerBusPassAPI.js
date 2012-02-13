@@ -9,7 +9,7 @@ BusPassAPI = function(apiMap) {
 BusPassAPI.prototype = {
     apiMap : {},
 
-    fetchRouteJourneyIds : function(successC, failureC) {
+    fetchRouteJourneyIds : function(routeids, successC, failureC) {
         url = this.apiMap["getRouteJourneyIds"];
         var api = this;
         function resultC(result) {
@@ -25,6 +25,14 @@ BusPassAPI.prototype = {
             }
         }
         var url = this.apiMap["getRouteJourneyIds"] +".json";
+        if (routeids != null && routeids.length > 0) {
+            url += "?routes=";
+            var ids = [];
+            for(var i = 0; i < routeids.length; i++ ) {
+                ids.push(routeids[i].id);
+            }
+            url += ids.join(",");
+        }
         $.ajax.get( { url: url, success: resultC, dataType: "json" });
     },
 

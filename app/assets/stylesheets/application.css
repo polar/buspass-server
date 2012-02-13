@@ -42,7 +42,7 @@
     text-align: right;
 }
 .item.rtype-journey .route-icon {
-    background : url('/assets/route_icon_active.png') no-repeat;
+    background : url('/assets/bus_icon_active.png') no-repeat;
     height : 1em;
     width : 1em;
     float : left;

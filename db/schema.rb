@@ -10,7 +10,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111227211900) do
+ActiveRecord::Schema.define(:version => 20120213032924) do
 
   create_table "apis", :force => true do |t|
     t.integer  "major_version"
@@ -109,6 +109,8 @@ ActiveRecord::Schema.define(:version => 20111227211900) do
     t.integer  "service_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "version_cache"
+    t.text     "coordinates_cache"
   end
 
   create_table "locations", :force => true do |t|
@@ -156,6 +158,7 @@ ActiveRecord::Schema.define(:version => 20111227211900) do
     t.integer  "persistentid"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "version_cache"
   end
 
   create_table "services", :force => true do |t|

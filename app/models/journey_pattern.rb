@@ -15,6 +15,8 @@ class JourneyPattern < ActiveRecord::Base
 
   has_one    :vehicle_journey, :dependent => :delete
 
+  serialize :coordinates_cache
+
   # We always calculate and save the locator box.
 
   # We only make the name unique so that we may update them by
@@ -25,13 +27,26 @@ class JourneyPattern < ActiveRecord::Base
   validates_presence_of :route
 
   after_validation :assign_lon_lat_locator_fields
+  after_validation :assign_version_cache
 
   def version
+    if (version_cache)
+        return version_cache
+    else
+        return get_version
+    end
+  end
+
+  def get_version
     date = updated_at
     for jptl in journey_pattern_timing_links do
       date = date > jptl.updated_at ? date : jptl.updated_at
     end
     return date.to_i
+  end
+
+  def assign_version_cache
+    self.version_cache = get_version
   end
 
   # We use Google to get the path, and the end points between validate
@@ -98,12 +113,25 @@ class JourneyPattern < ActiveRecord::Base
   end
 
   def view_path_coordinates
-    if journey_pattern_timing_links.size == 0
-      return { "LonLat" => [[0.0,0.0],[0.0,0.0]] }
+    if coordinates_cache
+        return { "LonLat" => coordinates_cache }
+    else
+        if journey_pattern_timing_links.size == 0
+            return { "LonLat" => [[0.0,0.0],[0.0,0.0]] }
+        else
+            return { "LonLat" =>
+                journey_pattern_timing_links.reduce([]) {|v,tl|v + tl.view_path_coordinates["LonLat"]}
+            }
+        end
     end
-    return { "LonLat" =>
-      journey_pattern_timing_links.reduce([]) {|v,tl|v + tl.view_path_coordinates["LonLat"]}
-	       }
+  end
+
+  def get_geometry
+      if journey_pattern_timing_links.size == 0
+          return [[0.0,0.0],[0.0,0.0]]
+      else
+        return journey_pattern_timing_links.reduce([]) {|v,tl|v + tl.view_path_coordinates["LonLat"]}
+      end
   end
 
   # in minutes
@@ -349,6 +377,8 @@ class JourneyPattern < ActiveRecord::Base
 
   # Store the locator box
   def assign_lon_lat_locator_fields
+      self.coordinates_cache = get_geometry()
+
     if (!journey_pattern_timing_links.empty?)
       box = journey_pattern_timing_links.reduce(journey_pattern_timing_links.first.theBox) {|v,jptl| combineBoxes(v,jptl.theBox)}
       self.nw_lon= box[0][0]

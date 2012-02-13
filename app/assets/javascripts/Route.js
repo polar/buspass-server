@@ -28,17 +28,17 @@ Route.prototype = {
         }
     },
 
-    _id : null,
+    _id : this.id,
     getId : function() {
         return this._id;
     },
 
-    _name : null,
+    _name : this.name,
     getName : function() {
         return this._name;
     },
 
-    _code : null,
+    _code : this.code,
     getCode: function() {
         return this._code;
     },
@@ -77,7 +77,7 @@ Route.prototype = {
         return this._onRoute;
     },
 
-    _type : null,
+    _type : this.type,
     getType : function() {
         return this._type;
     },

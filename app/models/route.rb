@@ -24,7 +24,17 @@ class Route < ActiveRecord::Base
   # Journey Patterns. If we modifed a single journey pattern
   # we've got a new version of the route. The version is
   # the time of the newest journey pattern.
+  after_validation :assign_version_cache
+
   def version
+      if (version_cache)
+          return version_cache
+      else
+          return get_version
+      end
+  end
+
+  def get_version
     datei = updated_at.to_i
     for jp in journey_patterns do
       datei = datei > jp.version ? datei : jp.version
@@ -32,9 +42,16 @@ class Route < ActiveRecord::Base
     return datei
   end
 
+  def assign_version_cache
+      self.version_cache = get_version()
+  end
+
   # Returns the location bounding box
   def theBox
-    journey_patterns.reduce(journey_patterns.first.theBox) {|v,jp| combineBoxes(v,jp.theBox)}
+      if (journey_patterns.size == 0)
+          return [[0.0,0.0],[0.0,0.0]]
+      end
+      return journey_patterns.reduce(journey_patterns.first.theBox) {|v,jp| combineBoxes(v,jp.theBox)}
   end
 
   def locatedBy(location)

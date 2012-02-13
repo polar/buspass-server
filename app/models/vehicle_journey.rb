@@ -14,6 +14,10 @@ class VehicleJourney < ActiveRecord::Base
 
   before_save :make_id_name
 
+  def self.find_by_routes(routes)
+      self.joins(:journey_pattern).where(:journey_patterns => {:route_id => routes})
+  end
+
   def make_id_name
     persistentid = name.hash.abs
   end

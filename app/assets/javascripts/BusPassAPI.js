@@ -1,11 +1,13 @@
 /**
  * BusPassAPI.js
  */
-BusPassAPI = function(url) {
-    this._hostUrl = url; // this has no meaning here.
+BusPassAPI = function(options) {
+    $.extend(this,options);
 };
 
 BusPassAPI.prototype = {
+    loginUrl: "/webmap/api.json?majorVersion=1&minorVersion=0",
+
     apiMap : {},
 
     _loggedIn : false,
@@ -58,7 +60,7 @@ BusPassAPI.prototype = {
                 }
             }
         }
-        $.get("/webmap/api.json?majorVersion=1&minorVersion=0",loginCallback, "json");
+        $.get(this.loginUrl,loginCallback, "json");
     },
 
 

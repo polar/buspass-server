@@ -8,7 +8,7 @@ self.loadJourneyIds = function(data) {
     var busAPI = new BusPassAPI(data.apiMap);
     data.status = "Start";
     self.postMessage(data);
-    busAPI.fetchRouteJourneyIds( function (journeyids) {
+    busAPI.fetchRouteJourneyIds(data.routeids, function (journeyids) {
             data.status = "Success";
             data.journeyids = journeyids;
             self.postMessage(data);

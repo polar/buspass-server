@@ -23,7 +23,7 @@ BusPass.JourneyBasket = function (options) {
     this._journeys = [];
 
     // Set up Worker.
-    this._worker = new Worker("/assets/RouteWebWorker.js");
+    this._worker = new Worker(this.webWorkerUrl);
     var basket = this;
     this._worker.addEventListener('message', function(e) {
         var data = e.data;
@@ -46,6 +46,15 @@ BusPass.JourneyBasket = function (options) {
 
 BusPass.JourneyBasket.prototype = {
     /**
+     * Attribute: webWorkerUrl
+     * This attribute contains the URL for the web worker that
+     * has two functions 'loadJourneyIds" and "fetchRoute". In
+     * conjunction with differnt API maps, we may have various
+     * configurations of the basket.
+     */
+    webWorkerUrl : "/assets/RouteWebWorker.js",
+
+    /**
      * Attribute: busAPI
      *
      * This is the api for getting things from the web. We just
@@ -54,8 +63,8 @@ BusPass.JourneyBasket.prototype = {
      */
     busAPI : {
         apiMap : {
-            getRouteDefinition : "",
-            getJourneyIds : ""
+            getRouteDefinition : "", // RouteWebWorker.fetchRoute
+            getJourneyIds : "",      // RouteWebWorker.loadJourneyIds
         },
         isLoggedIn : function () {}
     },
@@ -151,6 +160,7 @@ BusPass.JourneyBasket.prototype = {
     _loadJourneyIds : function() {
         this._worker.postMessage( {
             cmd: "loadJourneyIds",
+            routeids : this.getForRouteIds(),
             apiMap: this.busAPI.apiMap,
         });
     },
@@ -510,7 +520,17 @@ BusPass.JourneyBasket.prototype = {
     },
 
     getForRouteIds : function() {
-        return this._forRouteIds.splice(0);
+        if (this._forRouteIds != null) {
+            // This maybe full fledged routes, which we don't want to
+            // marshal to the web worker.
+            var nameids = $.map(this._forRouteIds,
+                                function(x) {
+                                    return { id : x._id, name: x._name, type: x._type };
+                                });
+            return nameids;
+        } else {
+            return null;
+        }
     },
 
     getLocation : function () {
