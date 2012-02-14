@@ -1,5 +1,5 @@
-/* Copyright (c) 2006-2011 by OpenLayers Contributors (see authors.txt for 
- * full list of contributors). Published under the Clear BSD license.  
+/* Copyright (c) 2006-2011 by OpenLayers Contributors (see authors.txt for
+ * full list of contributors). Published under the Clear BSD license.
  * See http://svn.openlayers.org/trunk/openlayers/license.txt for the
  * full text of the license. */
 
@@ -17,9 +17,9 @@
  *     click.  By setting a <pixelTolerance>, controls can also ignore clicks
  *     that include a drag.  Create a new instance with the
  *     <OpenLayers.Handler.Click> constructor.
- * 
+ *
  * Inherits from:
- *  - <OpenLayers.Handler> 
+ *  - <OpenLayers.Handler>
  */
 OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
     /**
@@ -28,20 +28,20 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
      *     considered a double-click.
      */
     delay: 300,
-    
+
     /**
      * APIProperty: single
      * {Boolean} Handle single clicks.  Default is true.  If false, clicks
      * will not be reported.  If true, single-clicks will be reported.
      */
     single: true,
-    
+
     /**
      * APIProperty: double
      * {Boolean} Handle double-clicks.  Default is false.
      */
     'double': false,
-    
+
     /**
      * APIProperty: pixelTolerance
      * {Number} Maximum number of pixels between mouseup and mousedown for an
@@ -51,30 +51,30 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
      *     constructed.
      */
     pixelTolerance: 0,
-        
+
     /**
      * APIProperty: dblclickTolerance
-     * {Number} Maximum distance in pixels between clicks for a sequence of 
+     * {Number} Maximum distance in pixels between clicks for a sequence of
      *     events to be considered a double click.  Default is 13.  If the
      *     distance between two clicks is greater than this value, a double-
      *     click will not be fired.
      */
     dblclickTolerance: 13,
-        
+
     /**
      * APIProperty: stopSingle
      * {Boolean} Stop other listeners from being notified of clicks.  Default
-     *     is false.  If true, any listeners registered before this one for 
+     *     is false.  If true, any listeners registered before this one for
      *     click or rightclick events will not be notified.
      */
     stopSingle: false,
-    
+
     /**
      * APIProperty: stopDouble
      * {Boolean} Stop other listeners from being notified of double-clicks.
      *     Default is false.  If true, any click listeners registered before
      *     this one will not be notified of *any* double-click events.
-     * 
+     *
      * The one caveat with stopDouble is that given a map with two click
      *     handlers, one with stopDouble true and the other with stopSingle
      *     true, the stopSingle handler should be activated last to get
@@ -97,7 +97,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
      *     mouse related listeners will do nothing.
      */
     touch: false,
-    
+
     /**
      * Property: down
      * {Object} Object that store relevant information about the last
@@ -116,24 +116,24 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
      */
     last: null,
 
-    /** 
+    /**
      * Property: first
-     * {Object} When waiting for double clicks, this object will store 
+     * {Object} When waiting for double clicks, this object will store
      *     information about the first click in a two click sequence.
      */
     first: null,
 
     /**
      * Property: rightclickTimerId
-     * {Number} The id of the right mouse timeout waiting to clear the 
+     * {Number} The id of the right mouse timeout waiting to clear the
      *     <delayedEvent>.
      */
     rightclickTimerId: null,
-    
+
     /**
      * Constructor: OpenLayers.Handler.Click
      * Create a new click handler.
-     * 
+     *
      * Parameters:
      * control - {<OpenLayers.Control>} The control that is making use of
      *     this handler.  If a handler is being used without a control, the
@@ -149,7 +149,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
     initialize: function(control, callbacks, options) {
         OpenLayers.Handler.prototype.initialize.apply(this, arguments);
     },
-    
+
     /**
      * Method: touchstart
      * Handle touchstart.
@@ -166,7 +166,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
         this.last = this.getEventInfo(evt);
         return true;
     },
-    
+
     /**
      * Method: touchmove
      *    Store position of last move, because touchend event can have
@@ -198,7 +198,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
         }
         return true;
     },
-    
+
     /**
      * Method: unregisterMouseListeners
      * In a touch environment, we don't want to handle mouse events.
@@ -229,7 +229,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
     /**
      * Method: mouseup
      * Handle mouseup.  Installed to support collection of right mouse events.
-     * 
+     *
      * Returns:
      * {Boolean} Continue propagating this event.
      */
@@ -246,47 +246,47 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
 
         return propagate;
     },
-    
+
     /**
      * Method: rightclick
-     * Handle rightclick.  For a dblrightclick, we get two clicks so we need 
-     *     to always register for dblrightclick to properly handle single 
+     * Handle rightclick.  For a dblrightclick, we get two clicks so we need
+     *     to always register for dblrightclick to properly handle single
      *     clicks.
-     *     
+     *
      * Returns:
      * {Boolean} Continue propagating this event.
      */
     rightclick: function(evt) {
         if(this.passesTolerance(evt)) {
            if(this.rightclickTimerId != null) {
-                //Second click received before timeout this must be 
+                //Second click received before timeout this must be
                 // a double click
                 this.clearTimer();
                 this.callback('dblrightclick', [evt]);
                 return !this.stopDouble;
-            } else { 
-                //Set the rightclickTimerId, send evt only if double is 
+            } else {
+                //Set the rightclickTimerId, send evt only if double is
                 // true else trigger single
                 var clickEvent = this['double'] ?
-                    OpenLayers.Util.extend({}, evt) : 
+                    OpenLayers.Util.extend({}, evt) :
                     this.callback('rightclick', [evt]);
 
                 var delayedRightCall = OpenLayers.Function.bind(
-                    this.delayedRightCall, 
-                    this, 
+                    this.delayedRightCall,
+                    this,
                     clickEvent
                 );
                 this.rightclickTimerId = window.setTimeout(
                     delayedRightCall, this.delay
                 );
-            } 
+            }
         }
         return !this.stopSingle;
     },
-    
+
     /**
      * Method: delayedRightCall
-     * Sets <rightclickTimerId> to null.  And optionally triggers the 
+     * Sets <rightclickTimerId> to null.  And optionally triggers the
      *     rightclick callback if evt is set.
      */
     delayedRightCall: function(evt) {
@@ -295,7 +295,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
            this.callback('rightclick', [evt]);
         }
     },
-    
+
     /**
      * Method: click
      * Handle click events from the browser.  This is registered as a listener
@@ -320,7 +320,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
      *     dblclick to properly handle single clicks.  This method is registered
      *     as a listener for the dblclick browser event.  It should *not* be
      *     called by other methods in this handler.
-     *     
+     *
      * Returns:
      * {Boolean} Continue propagating this event.
      */
@@ -328,8 +328,8 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
         this.handleDouble(evt);
         return !this.stopDouble;
     },
-    
-    /** 
+
+    /**
      * Method: handleDouble
      * Handle double-click sequence.
      */
@@ -338,8 +338,8 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             this.callback("dblclick", [evt]);
         }
     },
-    
-    /** 
+
+    /**
      * Method: handleSingle
      * Handle single click sequence.
      */
@@ -364,7 +364,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
                 // remember the first click info so we can compare to the second
                 this.first = this.getEventInfo(evt);
                 // set the timer, send evt only if single is true
-                //use a clone of the event object because it will no longer 
+                //use a clone of the event object because it will no longer
                 //be a valid event object in IE in the timer callback
                 var clickEvent = this.single ?
                     OpenLayers.Util.extend({}, evt) : null;
@@ -372,8 +372,8 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             }
         }
     },
-    
-    /** 
+
+    /**
      * Method: queuePotentialClick
      * This method is separated out largely to make testing easier (so we
      *     don't have to override window.setTimeout)
@@ -402,13 +402,13 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             passes = this.pixelTolerance >= this.down.xy.distanceTo(evt.xy);
             // for touch environments, we also enforce that all touches
             // start and end within the given tolerance to be considered a click
-            if (passes && this.touch && 
+            if (passes && this.touch &&
                 this.down.touches.length === this.last.touches.length) {
                 // the touchend event doesn't come with touches, so we check
                 // down and last
                 for (var i=0, ii=this.down.touches.length; i<ii; ++i) {
                     if (this.getTouchDistance(
-                            this.down.touches[i], 
+                            this.down.touches[i],
                             this.last.touches[i]
                         ) > this.pixelTolerance) {
                         passes = false;
@@ -419,8 +419,8 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
         }
         return passes;
     },
-    
-    /** 
+
+    /**
      * Method: getTouchDistance
      *
      * Returns:
@@ -432,10 +432,10 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             Math.pow(from.clientY - to.clientY, 2)
         );
     },
-    
+
     /**
      * Method: passesDblclickTolerance
-     * Determine whether the event is within the optional double-cick pixel 
+     * Determine whether the event is within the optional double-cick pixel
      *     tolerance.
      *
      * Returns:
@@ -463,7 +463,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
             this.rightclickTimerId = null;
         }
     },
-    
+
     /**
      * Method: delayedCall
      * Sets <timerId> to null.  And optionally triggers the click callback if
@@ -479,7 +479,7 @@ OpenLayers.Handler.Click = OpenLayers.Class(OpenLayers.Handler, {
     /**
      * Method: getEventInfo
      * This method allows us to store event information without storing the
-     *     actual event.  In touch devices (at least), the same event is 
+     *     actual event.  In touch devices (at least), the same event is
      *     modified between touchstart, touchmove, and touchend.
      *
      * Returns:

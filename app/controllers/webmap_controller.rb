@@ -250,30 +250,30 @@ class WebmapController < ApplicationController
      cs
  end
 
- def makeGeoJSON(coords)
+ def makeGeoJSONGeometry(coords)
      data = {
-         "type" => "Feature",
-         "properties" => {},
-         "geometry" => {
-                        "type" => "LineString",
-                        "coordinates" => coords
-                       },
-         "crs" => {
-                   "type"=> "name",
-                   "properties" => {
-                                    "name" => "urn:ogc:def:crs:OGC:1.3:CRS84"
-                                   }
-                  }
-     }
+            "type" => "LineString",
+            "coordinates" => coords
+            }
      return data
  end
 
   def getRouteGeoJSON(route)
       cs =  getRouteDefinitionCoords(route)
-      features = cs.map {|x| makeGeoJSON(x)}
+      geometries = cs.map {|x| makeGeoJSONGeometry(x)}
       data = {
-          "type" => "FeatureCollection",
-          "features" => features
+          "type" => "Feature",
+          "properties" => {},
+          "geometry" => {
+                         "type" => "GeometryCollection",
+                         "geometries" => geometries
+                        },
+          "crs" => {
+                    "type"=> "name",
+                    "properties" => {
+                                     "name" => "urn:ogc:def:crs:OGC:1.3:CRS84"
+                                    }
+                   }
       }
       return data
   end
