@@ -1,120 +1,181 @@
-/* Copyright (c) 2006-2011 by OpenLayers Contributors (see authors.txt for
- * full list of contributors). Published under the Clear BSD license.
- * See http://svn.openlayers.org/trunk/openlayers/license.txt for the
- * full text of the license. */
 
 
 /**
  * @requires OpenLayers/Control.js
  * @requires OpenLayers/Feature/Vector.js
- * @requires OpenLayers/Handler/Feature.js
+ * @requires OpenLayers/Handler/Click.js
  * @requires OpenLayers/Layer/Vector/RootContainer.js
  */
 
 /**
- * Class: OpenLayers.Control.SelectFeature
- * The SelectFeature control selects vector features from a given layer on
- * click or hover.
+ * Class: BusPass.SelectAllFeature
+ * The SelectAllFeature control selects all vector features from a given layer on
+ * click or hover, not just the top one.
  *
  * Inherits from:
  *  - <OpenLayers.Control>
  */
+
 BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
 
     /**
      * Constant: EVENT_TYPES
      *
      * Supported event types:
-     *  - *beforefeaturehighlighted* Triggered before a feature is highlighted
-     *  - *featurehighlighted* Triggered when a feature is highlighted
-     *  - *featureunhighlighted* Triggered when a feature is unhighlighted
+     *  - *beforefeaturehighlighted* Triggered before a feature is highlighted.
+     *  - *featurehighlighted* Triggered when a feature is highlighted.
+     *  - *featureunhighlighted* Triggered when a feature is unhighlighted.
+     *  - *beforefeatureselected* Triggered before a feature is selected.
+     *  - *featureselected* Triggered when a feature is selected.
+     *  - *featureunselected* Triggered when a feature is selected.
      */
-    EVENT_TYPES: ["beforefeaturehighlighted", "featurehighlighted", "featureunhighlighted"],
+    EVENT_TYPES: ["beforefeaturehighlighted", "featurehighlighted", "featureunhighlighted",
+                  "beforefeatureselected", "featureselected", "featureunselected"],
 
+    /**
+     * APIProperty: pointRadius
+     * {Integer} This is the pixel point radius used to select features.
+     *      Default is 2.
+     */
     pointRadius : 2,
 
     /**
-     * Property: multipleKey
-     * {String} An event modifier ('altKey' or 'shiftKey') that temporarily sets
-     *     the <multiple> property to true.  Default is null.
-     */
-    multipleKey: null,
-
-    /**
-     * Property: toggleKey
-     * {String} An event modifier ('altKey' or 'shiftKey') that temporarily sets
-     *     the <toggle> property to true.  Default is null.
-     */
-    toggleKey: null,
-
-    /**
      * APIProperty: multiple
-     * {Boolean} Allow selection of multiple geometries.  Default is false.
+     * {Boolean} Allow selection of multiple Features.  Default is false.
      */
     multiple: false,
 
     /**
      * APIProperty: clickout
-     * {Boolean} Unselect features when clicking outside any feature.
+     * {Boolean} Unselect and/or unhighlight features when clicking outside any feature.
      *     Default is true.
      */
     clickout: true,
 
     /**
-     * APIProperty: toggle
-     * {Boolean} Unselect a selected feature on click.  Default is false.  Only
-     *     has meaning if hover is false.
+     * APIProperty: highlightPolicy
+     * {String} Highlight Feature Policy.
+     * "onMove" -- highlight when mouse moved into features.
+     *             Warning this option may be intensive.
+     * "onPause" -- only highlight when paused over features.
+     * "none"    -- do not highlight.
+     *
+     * Default is "onPause"
      */
-    toggle: false,
-
-    /**
-     * APIProperty: hover
-     * {Boolean} Select on mouse over and deselect on mouse out.  If true, this
-     * ignores clicks and only listens to mouse moves.
-     */
-    hover: false,
-
-    /**
-     * APIProperty: highlightOnly
-     * {Boolean} If true do not actually select features (that is place them in
-     * the layer's selected features array), just highlight them. This property
-     * has no effect if hover is false. Defaults to false.
-     */
-    highlightOnly: false,
-
-    /**
-     * APIProperty: box
-     * {Boolean} Allow feature selection by drawing a box.
-     */
-    box: false,
-
-    /**
-     * Property: onBeforeSelect
-     * {Function} Optional function to be called before a feature is selected.
-     *     The function should expect to be called with a feature.
-     */
-    onBeforeSelect: function() {},
-
-    /**
-     * APIProperty: onSelect
-     * {Function} Optional function to be called when a feature is selected.
-     *     The function should expect to be called with a feature.
-     */
-    onSelect: function() {},
-
-    /**
-     * APIProperty: onUnselect
-     * {Function} Optional function to be called when a feature is unselected.
-     *     The function should expect to be called with a feature.
-     */
-    onUnselect: function() {},
+    highlightPolicy : "onPause",
 
     /**
      * Property: scope
-     * {Object} The scope to use with the onBeforeSelect, onSelect, onUnselect
-     *     callbacks. If null the scope will be this control.
+     * {Object} The scope to use with the onBeforeSelect, onBeforeSelectFeature, onSelected, onUnselected
+     *     onBeforeHighlight, onBeforeHighlightFeature, onHighlighted, onUnhighlighted callbacks.
+     *     If null the scope will be this control.
      */
     scope: null,
+
+    /**
+     * Property: onBeforeSelect
+     * {Function} Optional function to be called before features are selected.
+     *     The function shall be called with an {Array(<OpenLayers.Feature.Vector>)}
+     *     about to be selected.
+     *
+     * Returns a {Array(<OpenLayers.Feature.Vector>)} that should be selected.
+     */
+    onBeforeSelect: function (features) { return features; },
+
+    /**
+     * Property: onBeforeSelectFeature
+     * {Function} Optional function to be called before a Feature is to be selected.
+     *     The function shall be called with a an {<OpenLayers.Feature.Vector>}.
+     *
+     * Returns a {Boolean} to indicate if the feature should be included in
+     * the features to be selected.
+     */
+    onBeforeSelectFeature: function (feature) {},
+
+    /**
+     * APIProperty: onSelected
+     * {Function} Optional function to be called when Features have been selected.
+     *     The function shall be called with a list of Features.
+     */
+    onSelected: function (features) {},
+
+    /**
+     * APIProperty: onUnselected
+     * {Function} Optional function to be called when Features are unselected.
+     *     The function shall be called an {Array(<OpenLayers.Feature.Vector>)}.
+     */
+    onUnselected: function (features) {},
+
+    /**
+     * Property: onBeforeHighlight
+     * {Function} Optional function to be called before features are highlighted.
+     *     The function shall be called with an {Array(<OpenLayers.Feature.Vector>)}
+     *     about to be highlighted.
+     *
+     * Returns a {Array(<OpenLayers.Feature.Vector>)} that should be highlighted.
+     */
+    onBeforeHighlight: function (features) { return features; },
+
+    /**
+     * Property: onBeforeHightlightFeature
+     * {Function} Optional function to be called before a Feature is to be highlighted.
+     *     The function shall be called with a an {<OpenLayers.Feature.Vector>}.
+     *
+     * Returns a {Boolean} to indicate if the feature should be included in
+     * the features to be highlighted.
+     */
+    onBeforeHighlightFeature: function (feature) {},
+
+    /**
+     * APIProperty: onHighlighted
+     * {Function} Optional function to be called when Features have been highlighted.
+     *     The function shall be called with a list of Features.
+     */
+    onHighlighted: function (features) {},
+
+    /**
+     * APIProperty: onUnhighlighted
+     * {Function} Optional function to be called when Features are unhighlighted.
+     *     The function shall be called an {Array(<OpenLayers.Feature.Vector>)}.
+     */
+    onUnhighlighted: function (features) {},
+
+    /**
+     * APIProperty: blockScope
+     * This attribute provides the scope for the onBlockHighlighted, onBlockSelected, and
+     * onClickout call backs.
+     */
+    blockScope : null,
+
+    /**
+     * Attribute: onBlockHighlighted
+     * This method is called when there is a mouse event that selects
+     * features for highlighting and unhighlighting. This function drives highlightAndTriguer
+     * and unhighlight calls for individual Features and the above callbacks.
+     * Override this to act as a block.
+     */
+    onBlockHighlighted : function (inFeatures, outFeatures) {
+        this.highlightAndTrigger(inFeatures);
+        this.unhighlight(outFeatures);
+    },
+
+    /**
+     * Attribute: onBlockSelected
+     * This method is called when there is a mouse event that selects
+     * features for selection. This function drives selectAndTriguer
+     * and unselect for individual Features and the above callbacks. Override this to act as a
+     * block.
+     */
+    onBlockSelected : function (inFeatures, outFeatures) {
+        this.selectAndTrigger(inFeatures);
+        this.unselect(outFeatures);
+    },
+
+    /**
+     * APIProperty: onClickout
+     * {Function} If clickout is true, this function shall be called on a clickout.
+     */
+    onClickout : function () {},
 
     /**
      * APIProperty: geometryTypes
@@ -141,24 +202,39 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
 
     /**
      * APIProperty: callbacks
-     * {Object} The functions that are sent to the handlers.feature for callback
+     * {Object} The functions that are sent to the handlers for callbacks.
      */
     callbacks: null,
 
     /**
-     * APIProperty: selectStyle
-     * {Object} Hash of styles
-     */
-    selectStyle: null,
-    highlightStyle: null,
-
-    /**
-     * Property: renderIntent
+     * Property: selectIntent
      * {String} key used to retrieve the select style from the layer's
-     * style map.
+     * style map, if selectStyle is not set.
      */
     selectIntent: "select",
+
+    /**
+     * Property: highlightIntent
+     * {String} key used to retrieve the highlight style from the layer's
+     * style map, if highlightStyle is not set. Highlight will use select
+     * styles if highlightIntent and highlightStyle is not set.
+     */
     highlightIntent: "highlight",
+
+    /**
+     * APIProperty: selectStyle
+     * {<OpenLayers.Style>} the style to use for the selected features. Overrides
+     * the selectIntent property.
+     */
+    selectStyle: null,
+
+    /**
+     * APIProperty: highlightStyle
+     * {<OpenLayers.Style>} the style to use for the highlighted features. Overrides
+     * the highlightIntent property. Highlight will use select
+     * styles if highlightIntent and highlightStyle is not set.
+     */
+    highlightStyle: null,
 
     /**
      * Property: handlers
@@ -172,50 +248,61 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      * Create a new control for selecting features.
      *
      * Parameters:
-     * layers - {<OpenLayers.Layer.Vector>}, or an array of vector layers. The
-     *     layer(s) this control will select features from.
+     * layers - {<OpenLayers.Layer.Vector>}, or {Array(<OpenLayers.Layer.Vector>)}. The
+     *     layer(s) this control will select or highlight features from.
      * options - {Object}
      */
-    initialize: function(layers, options) {
+    initialize: function (layers, options) {
         // concatenate events specific to this control with those from the base
         this.EVENT_TYPES =
-            OpenLayers.Control.SelectFeature.prototype.EVENT_TYPES.concat(
-            OpenLayers.Control.prototype.EVENT_TYPES
-        );
+            BusPass.SelectAllFeature.prototype.EVENT_TYPES.concat(
+                OpenLayers.Control.prototype.EVENT_TYPES
+            );
         OpenLayers.Control.prototype.initialize.apply(this, [options]);
 
-        if(this.scope === null) {
+        if (this.scope === null) {
             this.scope = this;
         }
+        if (this.blockScope === null) {
+            this.blockScope = this;
+        }
+
         this.initLayer(layers);
+
         var callbacks = {
             click: this.clickPosition,
-           // move : this.overPosition,
-           // pause : this.pausePosition
+            move : this.overPosition,
+            pause : this.pausePosition
         };
 
         this.callbacks = OpenLayers.Util.extend(callbacks, this.callbacks);
         this.handlers = {
-            hover: new OpenLayers.Handler.Click(
+            hover: new OpenLayers.Handler.Hover(
+                this, this.callbacks
+            ),
+            click: new OpenLayers.Handler.Click(
                 this, this.callbacks
             )
         };
 
+        this.highlighted = [];
+        this.selected = [];
     },
 
     /**
      * Method: initLayer
-     * Assign the layer property. If layers is an array, we need to use
-     *     a RootContainer.
+     * Assign the layer property. If layers is an array, we use
+     *     a {<OpenLayers.Layer.Vector.RootContainer>}.
      *
      * Parameters:
-     * layers - {<OpenLayers.Layer.Vector>}, or an array of vector layers.
+     * layers - {<OpenLayers.Layer.Vector>}, or {Array(<OpenLayers.Layer.Vector>)}.
      */
-    initLayer: function(layers) {
-        if(OpenLayers.Util.isArray(layers)) {
+    initLayer: function (layers) {
+        if (OpenLayers.Util.isArray(layers)) {
             this.layers = layers;
             this.layer = new OpenLayers.Layer.Vector.RootContainer(
-                this.id + "_container", {
+                this.id + "_container",
+                {
                     layers: layers
                 }
             );
@@ -227,12 +314,12 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
     /**
      * Method: destroy
      */
-    destroy: function() {
-        if(this.active && this.layers) {
+    destroy: function () {
+        if (this.active && this.layers) {
             this.map.removeLayer(this.layer);
         }
         OpenLayers.Control.prototype.destroy.apply(this, arguments);
-        if(this.layers) {
+        if (this.layers) {
             this.layer.destroy();
         }
     },
@@ -246,10 +333,15 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      */
     activate: function () {
         if (!this.active) {
-            if(this.layers) {
+            if (this.layers) {
                 this.map.addLayer(this.layer);
             }
-            this.handlers.hover.activate();
+            if (this.handlers.hover) {
+                this.handlers.hover.activate();
+            }
+            if (this.handlers.click) {
+                this.handlers.click.activate();
+            }
         }
         return OpenLayers.Control.prototype.activate.apply(
             this, arguments
@@ -265,8 +357,14 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      */
     deactivate: function () {
         if (this.active) {
-            this.handlers.hover.deactivate();
-            if(this.layers) {
+            if (this.handlers.hover) {
+                this.handlers.hover.deactivate();
+            }
+            if (this.handlers.click) {
+                this.handlers.click.deactivate();
+            }
+
+            if (this.layers) {
                 this.map.removeLayer(this.layer);
             }
         }
@@ -278,75 +376,50 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
     /**
      * Method: unselectAll
      * Unselect all selected features.  To unselect all except for a single
-     *     feature, set the options.except property to the feature.
+     *     feature, set the options.except property to the feature. Do not
+     *     trigger any events.
      *
      * Parameters:
      * options - {Object} Optional configuration object.
      */
-    unselectAll: function(options) {
+    unselectAll: function (options) {
         // we'll want an option to supress notification here
         var layers = this.layers || [this.layer];
         var layer, feature;
-        for(var l=0; l<layers.length; ++l) {
+        var unselected = [];
+        if (this.highlighted) {
+            this.unhighlight(this.highlighted);
+        }
+        var l;
+        for (l = 0; l < layers.length; ++l) {
             layer = layers[l];
-            for(var i=layer.selectedFeatures.length-1; i>=0; --i) {
+            var i;
+            for (i = layer.selectedFeatures.length - 1; i >= 0; --i) {
                 feature = layer.selectedFeatures[i];
-                if(!options || options.except != feature) {
-                    this.unselect(feature);
+                if (!options || options.except != feature) {
+                    unselected.push(feature);
                 }
             }
         }
+        this.unselect(unselected);
     },
 
-    /**
-     * Method: unselectAll
-     * Unselect all selected features.  To unselect all except for a single
-     *     feature, set the options.except property to the feature.
-     *
-     * Parameters:
-     * options - {Object} Optional configuration object.
-     */
-    unselectAllAndTrigger: function(options) {
+    getAllSelectedFeatures : function () {
         // we'll want an option to supress notification here
         var layers = this.layers || [this.layer];
         var layer, feature;
-        for(var l=0; l<layers.length; ++l) {
+        var selected = [];
+        var l, len;
+        for (l = 0, len = layers.length; l < len; ++l) {
             layer = layers[l];
-            for(var i=layer.selectedFeatures.length-1; i>=0; --i) {
+            var i;
+            for (i = layer.selectedFeatures.length - 1; i >= 0; --i) {
                 feature = layer.selectedFeatures[i];
-                if(!options || options.except != feature) {
-                    this.unselectAndTrigger(feature);
-                }
+                selected.push(feature);
             }
         }
+        return selected;
     },
-
-//     /**
-//      * Method: clickFeature
-//      * Called on click in a feature
-//      * Only responds if this.hover is false.
-//      *
-//      * Parameters:
-//      * feature - {<OpenLayers.Feature.Vector>}
-//      */
-//     clickFeature: function(feature) {
-//         if(!this.hover) {
-//             var selected = (OpenLayers.Util.indexOf(
-//                 feature.layer.selectedFeatures, feature) > -1);
-//             if(selected) {
-//                 if(this.toggleSelect()) {
-//                     this.unselect(feature);
-//                 } else if(!this.multipleSelect()) {
-//                     this.unselectAll({except: feature});
-//                 }
-//             } else {
-//                 if(!this.multipleSelect()) {
-//                     this.unselectAll({except: feature});
-//                 }
-//                 this.select(feature);
-//             }
-//         }
-//     },
 
     /**
      * Method: multipleSelect
@@ -356,231 +429,266 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      * Returns:
      * {Boolean} Allow for multiple selected features.
      */
-    multipleSelect: function() {
+    multipleSelect: function () {
         //TODO figure out multipleKey
         return this.multiple;
-//         || (this.handlers.hover.evt &&
-//                                  this.handlers.hover.evt[this.multipleKey]);
+//         || (this.handlers.click.evt &&
+//               this.handlers.click.evt[this.multipleKey]);
     },
-
-//     /**
-//      * Method: toggleSelect
-//      * Event should toggle the selected state of a feature based on <toggle>
-//      *     property and <toggleKey> event modifier.
-//      *
-//      * Returns:
-//      * {Boolean} Toggle the selected state of a feature.
-//      */
-//     toggleSelect: function() {
-//         return this.toggle || (this.handlers.feature.evt &&
-//                                this.handlers.feature.evt[this.toggleKey]);
-//     },
-
-//     /**
-//      * Method: clickoutFeature
-//      * Called on click outside a previously clicked (selected) feature.
-//      * Only responds if this.hover is false.
-//      *
-//      * Parameters:
-//      * feature - {<OpenLayers.Vector.Feature>}
-//      */
-//     clickoutFeature: function(feature) {
-//         if(!this.hover && this.clickout) {
-//             this.unselectAll();
-//         }
-//     },
 
     /**
-     * Method: overFeature
-     * Called on over a feature.
-     * Only responds if this.hover is true.
-     *
-     * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
+     * Method: redrawHighlighted
+     * This method sets the style on the feature for being highlighted.
      */
-    overFeature: function(feature) {
-        var layer = feature.layer;
-        if(this.hover) {
-            if(this.highlightOnly) {
-                this.highlight(feature);
-            } else if(OpenLayers.Util.indexOf(
-                layer.selectedFeatures, feature) == -1) {
-                this.select(feature);
-            }
-        }
-    },
-
-//     /**
-//      * Method: outFeature
-//      * Called on out of a selected feature.
-//      * Only responds if this.hover is true.
-//      *
-//      * Parameters:
-//      * feature - {<OpenLayers.Feature.Vector>}
-//      */
-//     outFeature: function(feature) {
-//         if(this.hover) {
-//             if(this.highlightOnly) {
-//                 // we do nothing if we're not the last highlighter of the
-//                 // feature
-//                 if(feature._lastHighlighter == this.id) {
-//                     // if another select control had highlighted the feature before
-//                     // we did it ourself then we use that control to highlight the
-//                     // feature as it was before we highlighted it, else we just
-//                     // unhighlight it
-//                     if(feature._prevHighlighter &&
-//                        feature._prevHighlighter != this.id) {
-//                         delete feature._lastHighlighter;
-//                         var control = this.map.getControl(
-//                             feature._prevHighlighter);
-//                         if(control) {
-//                             control.highlight(feature);
-//                         }
-//                     } else {
-//                         this.unhighlight(feature);
-//                     }
-//                 }
-//             } else {
-//                 this.unselect(feature);
-//             }
-//         }
-//     },
-
-    highlight : function(feature) {
-        feature._prevHighlighter = feature._lastHighlighter;
-        feature._lastHighlighter = this.id;
+    redrawHighlighted : function (feature) {
         var style = this.highlightStyle || this.highlightIntent || this.selectStyle || this.selectIntent;
-        layer.drawFeature(feature, style);
-    },
-
-
-    /**
-     * Method: highlight
-     * Redraw feature with the select style.
-     *
-     * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
-     */
-    highlightAndTrigger: function(feature, forSelect) {
-        var layer = feature.layer;
-        var cont = this.events.triggerEvent("beforefeaturehighlighted", {
-            feature : feature
-        });
-        if(cont !== false) {
-            feature._prevHighlighter = feature._lastHighlighter;
-            feature._lastHighlighter = this.id;
-            var style = this.highlightStyle || this.highlightIntent || this.selectStyle || this.selectIntent;
-            if (forSelect) {
-                style = this.selectStyle || this.selectIntent;
-            }
-            layer.drawFeature(feature, style);
-            this.events.triggerEvent("featurehighlighted", {feature : feature});
-        }
+        feature.layer.drawFeature(feature, style);
     },
 
     /**
-     * Method: unhighlight
-     * Redraw feature with the "default" style
-     *
-     * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
+     * Method: redrawSelected
+     * This method sets the style on the feature for being selected.
      */
-    unhighlight: function(feature) {
+    redrawSelected : function (feature) {
+        var style = this.selectStyle || this.selectIntent;
+        feature.layer.drawFeature(feature, style);
+    },
+
+    /**
+     * Method: redrawNormal
+     * This method sets the style on the feature to its original style or default.
+     */
+    redrawNormal : function (feature) {
         feature.layer.drawFeature(feature, feature.style || feature.layer.style ||
             "default");
     },
 
     /**
-        * Method: unhighlight
-        * Redraw feature with the "default" style
-        *
-        * Parameters:
-        * feature - {<OpenLayers.Feature.Vector>}
-        */
-    unhighlightAndTrigger: function(feature) {
-        var layer = feature.layer;
-        // three cases:
-        // 1. there's no other highlighter, in that case _prev is undefined,
-        //    and we just need to undef _last
-        // 2. another control highlighted the feature after we did it, in
-        //    that case _last references this other control, and we just
-        //    need to undef _prev
-        // 3. another control highlighted the feature before we did it, in
-        //    that case _prev references this other control, and we need to
-        //    set _last to _prev and undef _prev
-        if(feature._prevHighlighter == undefined) {
-            delete feature._lastHighlighter;
-        } else if(feature._prevHighlighter == this.id) {
-            delete feature._prevHighlighter;
-        } else {
-            feature._lastHighlighter = feature._prevHighlighter;
-            delete feature._prevHighlighter;
+     * Method: highlight
+     * Redraw feature with the highlight or select style. Do not trigger any
+     *      highlight events.
+     *
+     * Parameters:
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
+     */
+    highlight : function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
         }
-        feature.layer.drawFeature(feature, feature.style || feature.layer.style ||
-        "default");
-        this.events.triggerEvent("featureunhighlighted", {feature : feature});
-    },
-
-
-    /**
-     * Method: select
-     * Add feature to the layer's selectedFeature array, render the feature as
-     * selected, and call the onSelect function.
-     *
-     * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
-     */
-    select: function(feature) {
-        feature.layer.selectedFeatures.push(feature);
-        this.highlight(feature);
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            this.redrawHighlighted(feature);
+            this.highlighted.push(feature);
+            feature.__highlighted = true;
+        }
     },
 
     /**
-     * Method: select
-     * Add feature to the layer's selectedFeature array, render the feature as
-     * selected, and call the onSelect function.
+     * Method: highlightAndTrigger
+     * Redraw feature with the highlight or select style and trigger highlight events.
+     * This method is usually called by a mouse event.
      *
      * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
      */
-    selectAndTrigger: function(feature) {
-        var cont = this.onBeforeSelect.call(this.scope, feature);
-        var layer = feature.layer;
-        if(cont !== false) {
-            cont = layer.events.triggerEvent("beforefeatureselected", {
-                feature: feature
-            });
-            if(cont !== false) {
-                layer.selectedFeatures.push(feature);
-                this.highlightAndTrigger(feature, true);
-                layer.events.triggerEvent("featureselected", {feature: feature});
-                this.onSelect.call(this.scope, feature);
+    highlightAndTrigger: function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
+        }
+        var highlighted = [];
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var layer = feature.layer;
+            var cont = this.onBeforeHighlightFeature.call(this.scope, feature);
+            if (cont !== false) {
+                cont = this.events.triggerEvent("beforefeaturehighlighted", {
+                    feature : feature
+                });
+                if (cont !== false) {
+                    this.redrawHighlighted(feature);
+                    highlighted.push(feature);
+                    feature.__highlighted = true;
+                    feature.__highlightedTriggered = true;
+                    this.highlighted.push(feature);
+                    this.events.triggerEvent("featurehighlighted", {feature : feature});
+                }
             }
         }
+        if (highlighted.length > 0) {
+            this.onHighlighted.call(this.scope, highlighted);
+        }
     },
 
-    unselect : function(feature) {
-        var layer = feature.layer;
-        // Store feature style for restoration later
-        this.unhighlight(feature);
-        OpenLayers.Util.removeItem(layer.selectedFeatures, feature);
+    /**
+     * Method: unhighlight
+     * This method unhighlights the feature. If the feature was selected, it redraws
+     * back to its "select" style. If a feature triggered an *featurehighlighted* event,
+     * for consistency, a *featureunhighlighted* event is triggered.
+     *
+     * Parameters:
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
+     */
+    unhighlight: function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
+        }
+        var removed = [];
+        var i, feature, layer;
+        for (i = 0; i < features.length; i++) {
+            feature = features[i];
+            layer = feature.layer;
+            // Some calls give this.highlighted to this call, so we delay removal.
+            removed.push(feature);
+            if (OpenLayers.Util.indexOf(layer.selectedFeatures, feature) != -1) {
+                this.redrawSelected(feature);
+            } else {
+                this.redrawNormal(feature);
+            }
+        }
+        var triggers = [];
+        for (i = 0; i < removed.length; i++) {
+            feature = removed[i];
+            OpenLayers.Util.removeItem(this.highlighted, feature);
+            if (feature.__highlightedTriggered) {
+                triggers.push(feature);
+            }
+        }
+        if (triggers.length > 0) {
+            for(i = 0; i < triggers.length; i++) {
+                feature = triggers[i];
+                this.events.triggerEvent("featureunhighlighted", {feature : feature});
+                feature.__highlightedTriggered = false;
+            }
+            this.onUnhighlighted.call(this.scope, triggers);
+        }
+    },
+
+    /**
+     * Method: select
+     * Add feature to the layer's selectedFeature array, render the feature as
+     * selected, and call the onSelected function. This method unhighlights all
+     * features, and triggers unhighlight events if they did trigger a
+     * highlighted event when highlighted.
+     *
+     * Parameters:
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
+     */
+    select: function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
+        }
+        if (this.highlighted) {
+            this.unhighlight(this.highlighted);
+        }
+        // if multiple is false, first deselect currently selected features
+        if (!this.multipleSelect()) {
+            this.unselectAll();
+        }
+        var i, feature, layer;
+        for (i = 0; i < features.length; i++) {
+            feature = features[i];
+            layer = feature.layer;
+            layer.selectedFeatures.push(feature);
+            feature.__selected = true;
+            this.redrawSelected(feature);
+        }
+    },
+
+    /**
+     * Method: selectAndTrigger
+     * Add the features to the layer's selectedFeature array, render the feature as
+     * selected, and call the onSelected function. Will unhighlight all features highlighted
+     * by this control.  This method is usually called by a mouse event.
+     *
+     * Parameters:
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
+     */
+    selectAndTrigger: function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
+        }
+        if (this.highlighted) {
+            this.unhighlight(this.highlighted);
+        }
+        // if multiple is false, first deselect currently selected features
+        if (!this.multipleSelect()) {
+            this.unselectAll();
+        }
+
+        features = this.onBeforeSelect.call(this.scope, features);
+        var selected = [];
+        var i, feature, layer;
+        for (i = 0; i < features.length; i++) {
+            feature = features[i];
+            layer = feature.layer;
+            var cont = this.onBeforeSelectFeature.call(this.scope, features);
+            if (cont !== false) {
+                cont = layer.events.triggerEvent("beforefeatureselected", {
+                    feature: feature
+                });
+                if (cont !== false) {
+                    selected.push(feature);
+                    layer.selectedFeatures.push(feature);
+                    feature.__selected = true;
+                    feature.__selectedTriggered = true;
+                    this.redrawSelected(feature);
+                    layer.events.triggerEvent("featureselected", {feature: feature});
+                }
+            }
+        }
+        if (selected.length > 0) {
+            this.onSelected.call(this.scope, selected);
+        }
     },
 
     /**
      * Method: unselect
      * Remove feature from the layer's selectedFeature array, render the feature as
-     * normal, and call the onUnselect function.
+     * normal, and call the onUnselected function. If selection triggered a featureselected
+     * event by this control, then to maintain consitency it will trigger a
+     * featureunselected event.
      *
      * Parameters:
-     * feature - {<OpenLayers.Feature.Vector>}
+     * features - {<OpenLayers.Feature.Vector>} or {Array(OpenLayers.Feature.Vector)}
      */
-    unselectAndTrigger: function(feature) {
-        var layer = feature.layer;
-        // Store feature style for restoration later
-        this.unhighlightAndTrigger(feature, true);
-        OpenLayers.Util.removeItem(layer.selectedFeatures, feature);
-        layer.events.triggerEvent("featureunselected", {feature: feature});
-        this.onUnselect.call(this.scope, feature);
+
+    unselect : function (features) {
+        if (!OpenLayers.Util.isArray(features)) {
+            features = [features];
+        }
+        if (this.highlighted) {
+            this.unhighlight(this.highlighted);
+        }
+        var unselected = [];
+        var i, feature, layer;
+        for (i = 0; i < features.length; i++) {
+            feature = features[i];
+            layer = feature.layer;
+            // Store feature style for restoration later
+            this.redrawNormal(feature);
+            unselected.push(feature);
+        }
+        var triggered = [];
+        for (i = 0; i < unselected.length; i++) {
+            feature = unselected[i];
+            layer = feature.layer;
+            OpenLayers.Util.removeItem(layer.selectedFeatures, feature);
+            feature.__selected = false;
+            if (feature.__selectedTriggered) {
+                triggered.push(feature);
+            }
+        }
+        for (i = 0; i < triggered.length; i++) {
+            feature = triggered[i];
+            layer = feature.layer;
+            feature.__selectedTriggered = false;
+            layer.events.triggerEvent("featureunselected", {feature: feature});
+        }
+        if (triggered.length > 0) {
+            this.onUnselected.call(this.scope, triggered);
+        }
     },
 
     /**
@@ -590,26 +698,23 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      * Parameters:
      * position - {<OpenLayers.Bounds> || <OpenLayers.Pixel> }
      */
-    featuresUnder: function(position) {
+    featuresUnder: function (position) {
         var inFeatures = [];
         var outFeatures = [];
         var lonlat = this.map.getLonLatFromPixel(position);
         var boundsGeometry = new OpenLayers.Geometry.Polygon.createRegularPolygon(
-                                new OpenLayers.Pixel(lonlat.lon, lonlat.lat),
-                                this.pointRadius*this.map.resolution, 20);
-        // if multiple is false, first deselect currently selected features
-        if (!this.multipleSelect()) {
-            this.unselectAll();
-        }
-
+            new OpenLayers.Pixel(lonlat.lon, lonlat.lat),
+            this.pointRadius * this.map.resolution, 20);
         // because we're using a box, we consider we want multiple selection
         var prevMultiple = this.multiple;
         this.multiple = true;
         var layers = this.layers || [this.layer];
         var layer;
-        for(var l=0; l<layers.length; ++l) {
+        var l;
+        for (l = 0; l < layers.length; ++l) {
             layer = layers[l];
-            for(var i=0, len = layer.features.length; i<len; ++i) {
+            var i, len;
+            for (i = 0, len = layer.features.length; i < len; ++i) {
                 var feature = layer.features[i];
                 // check if the feature is displayed
                 if (!feature.getVisibility()) {
@@ -633,51 +738,64 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
         return { in: inFeatures, out: outFeatures };
     },
 
+    paused : false,
+
     overPosition : function (evt) {
+        var i;
         var position = evt.xy;
-        console.log("SelectAllFeature.overPosition: " + position.x + " " + position.y);
-        var features = this.featuresUnder(position);
-        for(var i = 0; i < features.in.length; i++) {
-            this.highlightAndTrigger(features.in[i]);
-        };
-        for(var i = 0; i < features.out.length; i++) {
-            this.unhighlightAndTrigger(features.out[i]);
-        };
+        console.log("SelectAllFeature.overPosition: " + position.x + " " + position.y + " " + this.highlightPolicy);
+        if (this.paused) {
+            var fs = this.paused;
+            this.paused = false;
+            this.onBlockHighlighted.call(this.blockScope, [],fs);
+        }
+        if (this.highlightPolicy === "onMove") {
+            var features = this.featuresUnder(position);
+            // assert this.highlighted == []
+            this.onBlockHighlighted.call(this.blockScope, features.in, features.out);
+        }
+        return true;
     },
 
     pausePosition : function (evt) {
+        var i;
         var position = evt.xy;
-        console.log("SelectAllFeature.pausePosition: " + position.x + " " + position.y);
-        var features = this.featuresUnder(position);
-        console.log("   features selected " + features.in.length + " features unselected " + features.out.length);
-        for(var i = 0; i < features.in.length; i++) {
-            this.highlightAndTrigger(features.in[i]);
-        };
-        for(var i = 0; i < features.out.length; i++) {
-            this.unhighlightAndTrigger(features.out[i]);
-        };
+        console.log("SelectAllFeature.pausePosition: " + this.CLASS_NAME);
+        console.log("SelectAllFeature.pausePosition: " + position.x + " " + position.y + " " + this.highlightPolicy);
+        console.log("SelectAllFeature.pausePosition: " + (this.highlightPolicy === "onPause"));
+        if (this.highlightPolicy === "onPause") {
+            var features = { in: [], out:[] };
+            features = this.featuresUnder(position);
+            console.log("   features selected " + features.in.length + " features unselected " + features.out.length);
+            this.onBlockHighlighted.call(this.blockScope, features.in, features.out);
+            this.paused = features.in;
+        }
+        return true;
     },
 
     clickPosition : function (evt) {
+        var i;
         var position = evt.xy;
         console.log("SelectAllFeature.clickPosition: " + position.x + " " + position.y);
         // if multiple is false, first deselect currently selected features
         if (!this.multipleSelect()) {
-            this.unselectAll();
+            var selected = this.getAllSelectedFeatures();
+            this.onBlockSelected.call(this.blockScope, [], selected);
         }
-        var features = this.featuresUnder(position).in;
-        if (features.length > 0) {
-            for(var i = 0; i < features.length; i++) {
-                this.selectAndTrigger(features[i]);
+        var features = this.featuresUnder(position);
+        if (features.in.length == 0) {
+            if (this.clickout) {
+                console.log("SelectAllFeature.clickPosition: ClickOUT " + position.x + " " + position.y);
+                var selected = this.getAllSelectedFeatures();
+                this.onBlockSelected.call(this.blockScope, [], selected);
+                this.onClickout.call(this.blockScope);
+            } else {
+                this.onBlockSelected.call(this.blockScope, features.in, features.out);
             }
         } else {
-            if(this.clickout) {
-                this.unselectAll();
-            }
-            if (this.onClickOut) {
-                this.onClickout.call(this.scope);
-            }
+            this.onBlockSelected.call(this.blockScope, features.in, features.out);
         }
+        return true;
     },
 
     /**
@@ -687,8 +805,9 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      * Parameters:
      * map - {<OpenLayers.Map>}
      */
-    setMap: function(map) {
+    setMap: function (map) {
         this.handlers.hover.setMap(map);
+        this.handlers.click.setMap(map);
         OpenLayers.Control.prototype.setMap.apply(this, arguments);
     },
 
@@ -700,11 +819,11 @@ BusPass.SelectAllFeature = OpenLayers.Class(OpenLayers.Control, {
      * layers - Array of {<OpenLayers.Layer.Vector>} or a single
      *     {<OpenLayers.Layer.Vector>}
      */
-    setLayer: function(layers) {
+    setLayer: function (layers) {
         var isActive = this.active;
         this.unselectAll();
         this.deactivate();
-        if(this.layers) {
+        if (this.layers) {
             this.layer.destroy();
             this.layers = null;
         }

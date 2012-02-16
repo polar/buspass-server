@@ -1,6 +1,6 @@
 
 
-BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController, {
+BusPass.LocationMapViewController = OpenLayers.Class(BusPass.RoutesMapController, {
     /**
      * Attribute:
      * This attribute contains the 'default' and 'temporary' styles
@@ -14,13 +14,13 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
             externalGraphic : "/assets/busarrow.png",
         }),
         'highlight': new OpenLayers.Style({
-            graphicOpacity : .9,
+            graphicOpacity : 0.9,
             pointRadius : 12,
             graphicZIndex: 1000,
             externalGraphic : "/assets/busarrow_highlight.png",
         }),
-        'temporary': new OpenLayers.Style({
-            graphicOpacity : 0.3,
+        'select': new OpenLayers.Style({
+            graphicOpacity : 0.7,
             pointRadius : 12,
             graphicZIndex: 1000,
             externalGraphic : "/assets/busarrow.png",
@@ -29,16 +29,72 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
 
 
     /**
-     * Constructor: BusPass.MapViewController
+     * Constructor: BusPass.LocationMapViewController
      */
     initialize : function (options) {
         console.log("LocationMapViewController: initialize" + $.toJSON(options));
 
-        BusPass.MapViewController.prototype.initialize.apply(this, [options]);
+        BusPass.RoutesMapController.prototype.initialize.apply(this, [options]);
     },
 
-    mapView : function(jquery) {
-        BusPass.MapViewController.prototype.mapView.apply(this,[jquery]);
+    selectRoute : function (route) {
+        BusPass.RoutesMapController.prototype.selectRoute.apply(this,[route]);
+        if (route.__marker) {
+            this._selectCtrl.multiple = true;
+            this._selectCtrl.select(route.__marker);
+            this._selectCtrl.multiple = false;
+        }
+    },
+
+    selectRouteAndTrigger : function (route, feature) {
+        BusPass.RoutesMapController.prototype.selectRouteAndTrigger.apply(this, [route, feature]);
+        if (route.__marker) {
+            if (feature == route.__marker) {
+                // as opposed to its actual route line
+            // So, for an experiment here, if we want to select a journy
+            // we make sure we set enough data here to only display
+            // the one route selected by its marker.
+            }
+            this._selectCtrl.multiple = true;
+            this._selectCtrl.select(route.__marker);
+            this._selectCtrl.multiple = false;
+            // We don't trigger a selectEvent for the marker, the route has already been
+            // selected.
+        }
+    },
+
+    unselectRoute : function (route) {
+        if (route.__marker) {
+            this._selectCtrl.unselect(route.__marker);
+        }
+        BusPass.RoutesMapController.prototype.unselectRoute.apply(this, [route]);
+    },
+
+    highlightRoute : function (route) {
+        BusPass.RoutesMapController.prototype.highlightRoute.apply(this, [route, feature]);
+        if (route.__marker) {
+            this._selectCtrl.highlight(route.__marker);
+        }
+    },
+
+    highlightRouteAndTrigger : function (route) {
+        console.log("LocationMapViewController.highlightRouteAndTrigger:" + route.getDisplayName());
+        BusPass.RoutesMapController.prototype.highlightRouteAndTrigger.apply(this, [route]);
+        if (route.__marker) {
+            this._selectCtrl.highlight(route.__marker);
+        }
+    },
+
+    unhighlightRoute : function (route) {
+        BusPass.RoutesMapController.prototype.unhighlightRoute.apply(this, [route]);
+        if (route.__marker) {
+            this._selectCtrl.unhighlight(route.__marker);
+        }
+    },
+
+    // Override
+    mapView : function (jquery) {
+        BusPass.RoutesMapController.prototype.mapView.apply(this,[jquery]);
 
         // These are attributes we put on the Location Feature.
         OpenLayers.Util.extend(this.locationStyleMap.styles['default'].defaultStyle, {
@@ -51,7 +107,7 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
             this.locationStyleMap.styles['default'].defaultStyle);
 
         this._locationMarkers = this._constructLocationLayer();
-        this._map.addLayers([this._locationMarkers]);
+        this.map.addLayers([this._locationMarkers]);
         console.log("added vector and locations layer");
         // The activation of these controls brings them to the top
         // and they stay there (to catch MouseEvents).
@@ -62,49 +118,77 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
         // For some reason if we don't do this, the location markers
         // end up on the bottom.
         var layers = [this._routeVectors, this._locationMarkers];
-        this._setupSelectControls(layers);
+        this._setupSelectControls(layers, this.controlOptions);
 
         var ctrl = this;
 
-        function onHighlight(ev) {
-            var feature = ev.feature;
-            var route = feature.__route;
-            console.log("map.onHightlight: route " + route.getName() + " trigger " + !route.__nohighlightTrigger);
-            if (route.__nohighlightTrigger) {
-            } else {
-                if (feature == route.__marker) {
-                    features = route.__mapFeatures;
-                    for(var i = 0; i < features.length; i++) {
-                        // We do this so we don't trigger and come right back here.
-                        ctrl._highlightCtrl.highlight(features[i]);
-                    }
-                }
+        function onSelected(features) {
+            var i, len;
+            for (i = 0, len = features.length; i < len; i++) {
+                var feature = features[i];
+                var route = feature.__route;
+                var marker = route.__marker;
+                // Marker is selected.
+                BusPass.RoutesMapController.prototype.selectRouteAndTrigger.apply(this, [route]);
             }
-        };
+            ctrl.redraw();
+        }
 
-        // When the Feature is a selected feature, onUnhighlight doesn't get
-        // called on a mouseout. So, we don't propagate the call on onHighlight.
-        function onUnhighlight(ev) {
-            var feature = ev.feature;
-            var route = feature.__route;
-            console.log("map.onUnhightlight: route " + route.getName() + " trigger " + !route.__nounhighlightTrigger);
-        };
+        function onUnselected(features) {
+            var i, len;
+            for (i = 0, len = features.length; i < len; i++) {
+                var feature = features[i];
+                var route = feature.__route;
+                var marker = route.__marker;
+                // Marker is already Unselected.
+                BusPass.RoutesMapController.prototype.unselectRoute.apply(this, [route]);
+            }
+            ctrl.redraw();
+        }
 
-        ctrl._locationHighlightCtrl = new OpenLayers.Control.SelectFeature(layers, {
-            hover: true,
-            highlightOnly: true,
-            multiple: false,
-            renderIntent: "highlight",
-            eventListeners: {
-                featurehighlighted: onHighlight,
-                //featureunhighlghted does not get called if selected. Ugg.
-                // Probably due to the other Selection Controller calling
-                // highlight when the feature is selected?
-                featureunhighlighted: onUnhighlight
-            },
+        function onHighlighted(features) {
+            var i, len;
+            for (i = 0, len = features.length; i < len; i++) {
+                var feature = features[i];
+                var route = feature.__route;
+                var marker = route.__marker;
+                // Marker is already Unselected.
+                BusPass.RoutesMapController.prototype.highlightRouteAndTrigger.apply(this, [route]);
+            }
+            ctrl.redraw();
+        }
+
+        function onUnhighlighted(features) {
+            var i, len;
+            for (i = 0, len = features.length; i < len; i++) {
+                var feature = features[i];
+                var route = feature.__route;
+                var marker = route.__marker;
+                // Marker is already unhighlighted
+                BusPass.RoutesMapController.prototype.unhighlightRoute.apply(this, [route]);
+            }
+            ctrl.redraw();
+        }
+
+        function onClickout() {
+            ctrl.redraw();
+        }
+
+        ctrl._locationHighlightCtrl = new BusPass.SelectAllFeature(layers, {
+            onHighlighted: onHighlighted,
+            onUnhighlighted: onUnhighlighted,
+            onSelected: onSelected,
+            onUnselected: onUnselected
         });
-        ctrl._map.addControl(ctrl._locationHighlightCtrl);
-        ctrl._locationHighlightCtrl.activate();
+//         ctrl.map.addControl(ctrl._locationHighlightCtrl);
+//         ctrl._locationHighlightCtrl.activate();
+    },
+
+    // Override
+    _removeMapFeatures : function (route) {
+        route.__marker.__route = null;
+        delete route.__marker;
+        BusPass.RoutesMapController.prototype._removeMapFeatures.apply(this, [route]);
     },
 
     /**
@@ -122,13 +206,19 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
      *                   marker will be removed.
      * direction <Radians> Bearing from North.
      */
-    setLocation : function(route, loc, direction) {
+    setLocation : function (route, loc, direction) {
         if (route.__marker != null) {
+            if (route.__highlighted) {
+                this._selectCtrl.unhighlight(route.__marker);
+            }
+            if (route.__selected) {
+                this._selectCtrl.unselect(route.__marker);
+            }
             this._locationMarkers.removeFeatures(route.__marker);
             route.__marker = null;
         }
         if (loc != null) {
-            var lonlat = new OpenLayers.LonLat(loc[0],loc[1]).transform(
+            var lonlat = new OpenLayers.LonLat(loc[0], loc[1]).transform(
                 new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
                 new OpenLayers.Projection("EPSG:900913") // to Spherical Mercator Projection
             );
@@ -136,7 +226,7 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
             var geometry = new OpenLayers.Geometry.Point(lonlat.lon, lonlat.lat);
             // In the direction (bearing) is opposite of how we must rotate
             // And the rotation must be in degrees.
-            var rotation = -(direction / Math.PI)*180
+            var rotation = -(direction / Math.PI) * 180;
             var attributes = {
                 'direction' : direction,
                 'rotation' : rotation,
@@ -145,11 +235,20 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
                 'title' :  "" + route.getCode() + " " + route.getDisplayName()
             };
             var marker = new OpenLayers.Feature.Vector(geometry, attributes);
-            this._locationMarkers.addFeatures(marker);
-
             marker.__route = route; // For SelectControl
             marker.__lonlat = lonlat;
             route.__marker = marker;
+
+            this._locationMarkers.addFeatures(marker);
+            if (route.__highlighted) {
+                this._selectCtrl.highlight(route.__marker);
+            }
+            if (route.__selected) {
+                // Want to not clear the current selection just to add the marker.
+                this._selectCtrl.multiple = true;
+                this._selectCtrl.select(route.__marker);
+                this._selectCtrl.multiple = false;
+            }
 
 //             // The pointRadius actually governs the size of the icon.
 //             marker.style.pointRadius = 12;
@@ -169,7 +268,7 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
         this._locationMarkers.redraw();
     },
 
-    _constructLocationLayer : function() {
+    _constructLocationLayer : function () {
         var layer = new OpenLayers.Layer.Vector("Locations", {
             rendererOptions: {
                 zIndexing : true
@@ -177,39 +276,6 @@ BusPass.LocationMapViewController = OpenLayers.Class( BusPass.MapViewController,
             styleMap : this.locationStyleMap
         });
         return layer;
-    },
-
-});
-
-BusPass.MapViewController.SelectControl = OpenLayers.Class(OpenLayers.Control.SelectFeature, {
-    /**
-     * APIProperty: onSelect
-     * {Function} Optional function to be called when a feature is selected.
-     *     The function should expect to be called with a feature.
-     */
-    onClickout: function() {},
-
-    // Override
-    clickoutFeature : function(feature) {
-        if(!this.hover && this.clickout) {
-            this.unselectAll();
-            this.onClickout.call(this.scope);
-        }
-    },
-
-    /**
-    * Constructor: BusPass.MapViewController.SelectControl
-    * Create a new control for selecting features.
-    *
-    * Parameters:
-    * layers - {<OpenLayers.Layer.Vector>}, or an array of vector layers. The
-    *     layer(s) this control will select features from.
-    * options - {Object}
-    */
-    initialize: function(layers, options) {
-        OpenLayers.Control.SelectFeature.prototype.initialize.apply(this, [layers, options]);
-        console.log("arg layers: " + layers);
-        console.log("layer: " + this.layer);
     },
 
     CLASS_NAME: "BusPass.LocationMapViewController"

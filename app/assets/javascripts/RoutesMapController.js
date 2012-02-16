@@ -1,7 +1,7 @@
 /**
- * Class: MapClusterController
+ * Class: RoutesMapController
  */
-BusPass.MapClusterController = OpenLayers.Class({
+BusPass.RoutesMapController = OpenLayers.Class({
 
     /**
      * Attribute: scope
@@ -14,9 +14,9 @@ BusPass.MapClusterController = OpenLayers.Class({
     /**
      * Attribute: onRouteSelected
      * This function is called when the mouse selects a route
-     * on the map.
+     * on the map through a particular feature.
      */
-    onRouteSelected : function (route) {},
+    onRouteSelected : function (route, feature) {},
 
     /**
      * Attribute: onRouteUnselected
@@ -28,16 +28,96 @@ BusPass.MapClusterController = OpenLayers.Class({
     /**
      * Attribute: onRouteHighlighted
      * This function is called when the mouse highlights a route
-     * on the map.
+     * on the map through a particular feature.
      */
-    onRouteHighlighted : function (route) {},
+    onRouteHighlighted : function (route, feature) {},
 
     /**
      * Attribute: onRouteUnhighlighted
      * This function is called when the mouse unhighlights a route
-     * on the map.
+     * on the mape.
      */
     onRouteUnhighlighted : function (route) {},
+
+    /**
+     * Attribute: blockScope
+     * This is the scope for the callbacks onHighlightedRoutes,
+     * onUnhighlightedRoutes, onSelectedRoutes, onUnselectedRoutes,
+     * onClickout.
+     */
+    blockScope : null,
+
+    /**
+     * Attribute: onHighlightedRoutes
+     * This method is called by the SelectAllFeature control for a
+     * whole highlighted selection. It drives the highlightRouteAndTrigger
+     * and subsequen onRouteHighlighted callback. Override this to work as a block.
+     */
+    onHighlightedRoutes : function (routes, features) {
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var route = feature.__route;
+            console.log("map.onHightlightFeature: route " + route.getName());
+            this.highlightRouteAndTrigger(route, feature);
+        }
+    },
+
+    /**
+     * Attribute: onHighlightedRoutes
+     * This method is called by the SelectAllFeature control for a
+     * whole unhighlighted selection. It drives the unhighlightRoute and
+     * any subsequent onRouteUnhighlighted callbacks. Override this to work as a block.
+     */
+    onUnhighlightedRoutes : function (routes, features) {
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var route = feature.__route;
+            console.log("map.onUnhightlightFeature: route " + route.getName());
+            this.unhighlightRoute(route);
+        }
+    },
+
+    /**
+     * Attribute: onSelectedRoutes
+     * This method is called by the SelectAllFeature control for a
+     * whole selected selection. It drives the selectRouteAndTrigger and
+     * and subsequent onRouteSelectedted callbacks. Override this to work as a block.
+     */
+    onSelectedRoutes : function (routes, features) {
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var route = feature.__route;
+            console.log("map.onSelectedFeature: route " + route.getName());
+            this.selectRouteAndTrigger(route, feature);
+        }
+    },
+
+    /**
+     * Attribute: onUnselectedRoutes
+     * This method is called by the SelectAllFeature control for a
+     * whole selected selection. It drives the unhighlightRoute and
+     * any subsequent onRouteUnhighlighted callbacks. Override this to work as a block.
+     */
+    onUnselectedRoutes : function (routes, features) {
+        var i;
+        for (i = 0; i < features.length; i++) {
+            var feature = features[i];
+            var route = feature.__route;
+            console.log("map.onUnselectedFeature: route " + route.getName());
+            this.unselectRoute(route);
+        }
+    },
+
+    /**
+     * APIProperty: onClickout
+     * This is called if the selection and highlights clicked out and
+     * unselected everything. All callbacks should have been called, so
+     * this leaves an opportunity to clean up.
+     */
+    onClickout : function () { },
 
     /**
      * Attribute: map
@@ -83,8 +163,8 @@ BusPass.MapClusterController = OpenLayers.Class({
             context : function (feature) { return feature; },
                 filter : new OpenLayers.Filter({
                     evaluate: function (feature) {
-                        //console.log("strokeWidth: zoom=" + ctrl._map.zoom);
-                        return ctrl._map.zoom < 13;
+                        //console.log("strokeWidth: zoom=" + ctrl.map.zoom);
+                        return ctrl.map.zoom < 13;
                     }
                 }),
                 symbolizer: {
@@ -140,16 +220,19 @@ BusPass.MapClusterController = OpenLayers.Class({
     controlOptions : {},
 
     /**
-     * Constructor: BusPass.MapViewController
+     * Constructor: BusPass.RoutesMapController
      */
     initialize : function (options) {
-        console.log("MapClusterontroller: initialize" + $.toJSON(options));
+        console.log("RoutesMapController: initialize" + $.toJSON(options));
         OpenLayers.Util.extend(this, options);
         this._routes = [];
         this._selectedRoutes = [];
         this._highlightedRoutes = [];
-        if (this.scope == null) {
+        if (this.scope === null) {
             this.scope = this;
+        }
+        if (this.blockScope === null) {
+            this.blockScope = this;
         }
     },
 
@@ -218,23 +301,27 @@ BusPass.MapClusterController = OpenLayers.Class({
      * This method selects the route in. It does not trigger the callback.
      */
     selectRoute : function (route) {
-        this._selectedRoutes.push(route);
-        route.__selected = true;
-        console.log("map.selectRoute: selecting " + route.getName() + ":" + route.getId());
-        this._selectCtrl.selectFeatures(route.__mapFeature);
+        if (!route.__selected) {
+            this._selectedRoutes.push(route);
+            route.__selected = true;
+            console.log("map.selectRoute: selecting " + route.getName() + ":" + route.getId());
+            this._selectCtrl.selectFeatures(route.__mapFeature);
+        }
     },
 
     /**
      * Method: selectRoute
      * This method selects the route in. This calls the onRouteSelected callback.
      */
-    selectRouteAndTrigger : function (route) {
-        this._selectedRoutes.push(route);
-        route.__selected = true;
-        console.log("map.selectRoute: selecting " + route.getName() + ":" + route.getId());
-        // Route.__mapFeature has already been selected.
-        this.onRouteSelected.call(this.scope, route);
-        route.__selectedTriggered = true;
+    selectRouteAndTrigger : function (route, feature) {
+        if (!route.__selected) {
+            this._selectedRoutes.push(route);
+            route.__selected = true;
+            console.log("map.selectRoute: selecting " + route.getName() + ":" + route.getId());
+            // Route.__mapFeature has already been selected.
+            this.onRouteSelected.call(this.scope, route, feature);
+            route.__selectedTriggered = true;
+        }
     },
 
     /**
@@ -243,14 +330,16 @@ BusPass.MapClusterController = OpenLayers.Class({
      * It doesn't trigger a callback.
      */
     unselectRoute : function (route) {
-        this._selectedRoutes = OpenLayers.Util.removeItem(this._selectedRoutes, route);
-        route.setSelected(false);
-        console.log("map.unselectRouteNoTrigger: unselecting " + route.getName() + ":" + route.getId());
-        this._selectCtrl.unselect(route.__mapFeature);
-        route.__selected = false;
-        if (route.__selectedTriggered) {
-            this.onRouteUnselected.call(this.scope, route);
-            route.__selectedTriggered = false;
+        if (route.__selected) {
+            this._selectedRoutes = OpenLayers.Util.removeItem(this._selectedRoutes, route);
+            route.setSelected(false);
+            console.log("map.unselectRouteNoTrigger: unselecting " + route.getName() + ":" + route.getId());
+            this._selectCtrl.unselect(route.__mapFeature);
+            route.__selected = false;
+            if (route.__selectedTriggered) {
+                this.onRouteUnselected.call(this.scope, route);
+                route.__selectedTriggered = false;
+            }
         }
     },
 
@@ -273,12 +362,10 @@ BusPass.MapClusterController = OpenLayers.Class({
      */
     highlightRoute : function (route) {
         console.log("map.highlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
-        if (!route.isSelected()) {
-            this._highlightedRoutes.push(route);
-            route.__highlighted = true;
-            if (route.__mapFeature) {
-                this._selectCtrl.highlight(route.__mapFeature);
-            }
+        this._highlightedRoutes.push(route);
+        route.__highlighted = true;
+        if (route.__mapFeature) {
+            this._selectCtrl.highlight(route.__mapFeature);
         }
     },
 
@@ -286,15 +373,13 @@ BusPass.MapClusterController = OpenLayers.Class({
      * Method: highlightRouteAndTrigger
      * This method only highlights the routes in this View.
      */
-    highlightRouteAndTrigger : function (route) {
+    highlightRouteAndTrigger : function (route, feature) {
         console.log("map.highlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
-        if (!route.isSelected()) {
-            this._highlightedRoutes.push(route);
-            route.__highlighted = true;
-            // Route.__mapFeature has already been highlighted.
-            route.__highlightedTriggered = true;
-            this.onRouteHighlighted.call(this.scope, route);
-        }
+        this._highlightedRoutes.push(route);
+        route.__highlighted = true;
+        // Route.__mapFeature has already been highlighted.
+        route.__highlightedTriggered = true;
+        this.onRouteHighlighted.call(this.scope, route, feature);
     },
 
     /**
@@ -304,17 +389,14 @@ BusPass.MapClusterController = OpenLayers.Class({
      */
     unhighlightRoute : function (route) {
         console.log("map.unhighlightRouteNoTrigger " + route.getName() + " - " + route.isSelected());
-        // A selected item doesn't have a highlight, doing this kills the selection.
-        if (!route.isSelected()) {
-            OpenLayers.Util.removeItem(this._highlightedRoutes, route);
-            route.__highlighted = false;
-            if (route.__mapFeature) {
-                this._selectCtrl.unhighlight(route.__mapFeature);
-            }
-            if (route.__highlightedTriggered) {
-                route.__highlightedTriggered = false;
-                this.onRouteUnhighlighted.call(this.scope, route);
-            }
+        OpenLayers.Util.removeItem(this._highlightedRoutes, route);
+        route.__highlighted = false;
+        if (route.__mapFeature) {
+            this._selectCtrl.unhighlight(route.__mapFeature);
+        }
+        if (route.__highlightedTriggered) {
+            route.__highlightedTriggered = false;
+            this.onRouteUnhighlighted.call(this.scope, route);
         }
     },
 
@@ -431,56 +513,35 @@ BusPass.MapClusterController = OpenLayers.Class({
         var ctrl = this;
 
         function onHighlightedFeatures(features) {
-            var i;
-            for (i = 0; i < features.length; i++) {
-                var feature = features[i];
-                var route = feature.__route;
-                console.log("map.onHightlightFeature: route " + route.getName());
-                ctrl.highlightRouteAndTrigger(route);
-            }
+            var routes = $.map(features, function (f) { return f.__route; });
+            ctrl.onHighlightedRoutes.call(ctrl.blockScope, routes, features);
         }
 
         function onUnhighlightedFeatures(features) {
-            var i;
-            for (i = 0; i < features.length; i++) {
-                var feature = features[i];
-                var route = feature.__route;
-                console.log("map.onUnhightlightFeature: route " + route.getName());
-                ctrl.unhighlightRoute(route);
-            }
+            var routes = $.map(features, function (f) { return f.__route; });
+            ctrl.onUnhighlightedRoutes.call(ctrl.blockScope, routes, features);
         }
 
         function onSelectedFeatures(features) {
-            var i;
-            for (i = 0; i < features.length; i++) {
-                var feature = features[i];
-                var route = feature.__route;
-                console.log("map.onSelectedFeature: route " + route.getName());
-                ctrl.selectRouteAndTrigger(route);
-            }
+            var routes = $.map(features, function (f) { return f.__route; });
+            ctrl.onSelectedRoutes.call(ctrl.blockScope, routes, features);
         }
 
-        // This gets called via selectRoute and also by
-        // MouseEvent, which unselectsAll.
         function onUnselectedFeatures(features) {
-            var i;
-            for (i = 0; i < features.length; i++) {
-                var feature = features[i];
-                var route = feature.__route;
-                console.log("map.onUnselectedFeature: route " + route.getName());
-                ctrl.unselectRoute(route);
-            }
+            var routes = $.map(features, function (f) { return f.__route; });
+            ctrl.onUnselectedRoutes.call(ctrl.blockScope, routes, features);
         }
 
         function onClickout() {
             // This will have hit the onUnselectedRoute for every one selected?
             // Which will have cleared its select on the routesView.
-            ctrl._routeVectors.redraw();
+            ctrl.onClickout.call(ctrl.blockScope);
+            ctrl.redraw();
         }
 
         if (ctrl._selectCtrl != null) {
             ctrl._selectCtrl.deactivate();
-            ctrl._map.removeControl(ctrl._selectCtrl);
+            ctrl.map.removeControl(ctrl._selectCtrl);
             ctrl._selectCtrl.destroy();
         }
 
@@ -500,5 +561,5 @@ BusPass.MapClusterController = OpenLayers.Class({
         ctrl._selectCtrl.activate();
     },
 
-    CLASS_NAME: "BusPass.MapClusterController"
+    CLASS_NAME: "BusPass.RoutesMapController"
 });

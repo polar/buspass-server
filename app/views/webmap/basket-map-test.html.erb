@@ -64,25 +64,26 @@
 $(function() {
         $("body").layout({ applyDefaultStyles: true });
         // initialize scrollable with mousewheel support
-        $("#routesView").scrollable({ vertical: true, mousewheel: true });
+        $("#routesView").scrollable({ vertical: true, mousewheel: true, keyboard : true, easing: "swing" });
+        var scroll = $("#routesView").data("scrollable");
         api = new BusPassAPI("http://localhost:3000/");
-        mapView = new BusPass.MapClusterController( {
+        mapView = new BusPass.RoutesMapController( {
             scope : this,
             onRouteSelected : function( route ) {
-                $("#message").html("<span style='color:red'>Route Selected: " + route.getCode() + " " +route.getName() + "</span>");
+                scroll.addItem($("<div class='item' style='color:red'>Route Selected: " + route.getCode() + " " +route.getName() + "</div>"));
             },
             onRouteUnselected : function( route ) {
-                $("#message").html("<span style='color:blue'>Route Unselected: " + route.getCode() + " " +route.getName() + "</span>");
+                scroll.addItem($("<div class='item' style='color:blue'>Route Unselected: " + route.getCode() + " " +route.getName() + "</div>"));
             },
             onRouteHighlighted : function( route ) {
-                $("#message").html("<span style='color:green'>Route Highlighted: " + route.getCode() + " " +route.getName() + "</span>");
+                scroll.addItem($("<div class='item' style='color:green'>Route Highlighted: " + route.getCode() + " " +route.getName() + "</div>"));
             },
             onRouteUnhighlighted : function( route ) {
-                $("#message").html("<span style='color:black'>Route Unhighlighted: " + route.getCode() + " " +route.getName() + "</span>");
+                scroll.addItem($("<div class='item' style='color:black'>Route Unhighlighted: " + route.getCode() + " " +route.getName() + "</div>"));
             },
         });
         mapView.mapView("#map");
-        basket = new BusPass.JourneyBasket()
+        basket = new BusPass.JourneyBasket();
         basket.busAPI = api;
         basket.journeyStore = new BusPass.JourneyStore();
         basket.onJourneyAddedListener =  {
